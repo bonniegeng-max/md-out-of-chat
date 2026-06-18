@@ -1,0 +1,8 @@
+# 部署产物
+dist/
+__pycache__/
+*.pyc
+.DS_Store
+# 敏感（万一你之后放了 token 到本地）
+*.token
+*.secret
