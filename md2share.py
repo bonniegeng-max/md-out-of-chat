@@ -85,23 +85,40 @@ def highlight_code(code, lang):
     }
     
     keywords = keywords_map.get(lang.lower(), [])
-    
-    # 高亮关键字
+
+    # 把所有 HTML 转义（避免被字符串正则误伤）
+    code = code.replace('&', '\x00AMP\x00').replace('<', '\x00LT\x00').replace('>', '\x00GT\x00')
+
+    # 高亮关键字（用 \x01N\x01 包裹）
     for kw in sorted(keywords, key=len, reverse=True):
-        code = re.sub(r'\b' + re.escape(kw) + r'\b', f'<span class="kw">{kw}</span>', code)
-    
-    # 高亮字符串（"..." 或 '...'）
-    code = re.sub(r'("[^"]*"|\'[^\']*\')', r'<span class="str">\1</span>', code)
-    
+        code = re.sub(r'\b' + re.escape(kw) + r'\b', '\x01K\x01' + kw + '\x01E\x01', code)
+
+    # 高亮字符串
+    code = re.sub(r'("[^"\n]*"|\'[^\'\n]*\')', '\x01S\x01\1\x01E\x01', code)
+
     # 高亮数字
-    code = re.sub(r'\b(\d+\.?\d*)\b', r'<span class="num">\1</span>', code)
-    
+    code = re.sub(r'\b(\d+\.?\d*)\b', '\x01N\x01\1\x01E\x01', code)
+
     # 高亮注释
     if lang.lower() in ('python', 'bash', 'javascript'):
-        code = re.sub(r'(#[^\n]*)', r'<span class="cmt">\1</span>', code)
+        code = re.sub(r'(#[^\n]*)', '\x01C\x01\1\x01E\x01', code)
     if lang.lower() in ('sql'):
-        code = re.sub(r'(--[^\n]*)', r'<span class="cmt">\1</span>', code)
-    
+        code = re.sub(r'(--[^\n]*)', '\x01C\x01\1\x01E\x01', code)
+
+    # 把占位符换回 HTML
+    repl = {
+        '\x00AMP\x00': '&amp;',
+        '\x00LT\x00': '&lt;',
+        '\x00GT\x00': '&gt;',
+        '\x01K\x01': '<span class="kw">',
+        '\x01S\x01': '<span class="str">',
+        '\x01N\x01': '<span class="num">',
+        '\x01C\x01': '<span class="cmt">',
+        '\x01E\x01': '</span>',
+    }
+    for k, v in repl.items():
+        code = code.replace(k, v)
+
     return code
 
 def render_html(blocks, title="md2view"):
@@ -112,8 +129,8 @@ def render_html(blocks, title="md2view"):
     for b in blocks:
         if b['type'] == 'h':
             lvl = b['level']
-            cls = f'h{lvl}'
-            parts.append(f'<{lvl} class="{cls}">{html.escape(b["content"])}</{lvl}>')
+            tag = f'h{lvl}'
+            parts.append(f'<{tag} class="{tag}">{html.escape(b["content"])}</{tag}>')
         elif b['type'] == 'p':
             # 内联处理：**bold** *italic* `code`
             text = html.escape(b['content'])

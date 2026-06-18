@@ -48,7 +48,15 @@ Run the file through this skill. It produces:
 
 Try it on a sample file: see `demo.md` for the input.
 
-See how it renders: [Live demo](https://by6ple8hjeqj.space.minimaxi.com) (deployed via the assistant's built-in web server).
+- **Live web demo**: [Click to view](https://2uf0a7axwwwr.space.minimaxi.com) (h1/h2 headings, code blocks with language labels, copy buttons, mobile-friendly tables)
+- **Long screenshot**: see `demo.png` in this repo (a 750×2750 phone-shaped snapshot, Chinese + English fully rendered)
+
+| Element | Input (Markdown) | Output (HTML + Screenshot) |
+|---------|------------------|----------------------------|
+| Heading | `# Title` | Blue title with bottom border |
+| Table | `\| col \| col \|` | Zebra-striped, mobile-friendly |
+| Code | ` ```python ` | Dark header with language label, syntax highlight, one-tap copy |
+| Chinese | `你好，世界` | Renders correctly (Noto CJK fonts pre-installed) |
 
 | Element | Input (Markdown) | Output (HTML) |
 |---------|------------------|---------------|
@@ -157,16 +165,18 @@ There are other "md to html" skills (`awesome-copilot/markdown-to-html`, `haidan
 ## Status · 状态
 
 ✅ Core features done:
-- 标题 / 段落 / 表格 / 代码块（带语言标签）/ 列表 / 粗体 / 斜体
-- 代码块一键复制按钮
+- 标题 / 段落 / 表格 / 代码块（带语言标签 + 语法高亮）/ 列表 / 粗体 / 斜体
+- 代码块一键复制按钮（3 状态：Copy → Copying... → Copied! → 2 秒回 Copy）
 - 蓝白灰简约风格
 - 移动端适配
+- 中文字体（Noto CJK）
+- **HTML → PNG 长图截图**（`./screenshot.sh`，可选）
 
 🟡 Coming next:
 - 引用 blockquote
 - 有序列表 ol
 - 链接样式化
-- HTML → PNG 长图截图（兜底用）
+- 任务列表 - [ ]
 
 ---
 
