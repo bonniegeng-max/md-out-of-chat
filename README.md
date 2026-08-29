@@ -166,17 +166,19 @@ There are other "md to html" skills (`awesome-copilot/markdown-to-html`, `haidan
 
 ✅ Core features done:
 - 标题 / 段落 / 表格 / 代码块（带语言标签 + 语法高亮）/ 列表 / 粗体 / 斜体
+- 引用 blockquote / 有序列表 / 任务列表 `- [ ]` / 链接样式化
+- 表格 cell 内联格式（粗体/斜体/行内代码/链接）+ `\|` 转义
 - 代码块一键复制按钮（3 状态：Copy → Copying... → Copied! → 2 秒回 Copy）
+- 语法高亮重写为单遍 tokenize（注释→字符串→关键字→数字），修复了字符串内关键字误高亮和 span 嵌套错乱
 - 蓝白灰简约风格
 - 移动端适配
 - 中文字体（Noto CJK）
 - **HTML → PNG 长图截图**（`./screenshot.sh`，可选）
 
 🟡 Coming next:
-- 引用 blockquote
-- 有序列表 ol
-- 链接样式化
-- 任务列表 - [ ]
+- 嵌套列表
+- 图片 `![alt](url)`
+- footnotes
 
 ---
 

@@ -1,3 +1,11 @@
+---
+name: md-out-of-chat
+description: 把 AI 在聊天里写出的 Markdown 转成手机能直接看的网页或长图。解决微信/飞书/Slack 里 .md 打不开、代码错位、表格对不齐的问题。输出带语法高亮、语言标签和一键复制按钮的移动端 HTML，或手机尺寸长截图。本地运行，数据不出本机。当用户说"把这个 md 转成能看的""我在手机上看""转一下发给朋友"时使用。
+version: 1.1.0
+homepage: https://github.com/bonniegeng-max/md-out-of-chat
+license: MIT
+---
+
 # md-out-of-chat
 
 **Pulling Markdown out of chat, into something people can actually read.**
@@ -67,7 +75,20 @@ AI agents live in chat (WeChat, Feishu, Slack, Discord, …) and love to write `
 
 ### Lists
 - Unordered: bullet points
+- Ordered: numbered
+- Task lists: `- [ ]` / `- [x]` render as checkboxes (done items struck through)
 - 6px vertical spacing between items
+
+### Blockquotes
+- `>` lines render as a left-accent-border quote block, gray text
+
+### Links
+- `[text](url)` renders as styled anchor; only `http:` / `https:` / `mailto:` schemes allowed (XSS-safe)
+- Long URLs wrap on mobile (`word-break: break-all`)
+
+### Inline in table cells
+- Cell content supports bold / italic / inline code / links
+- `\|` escapes a literal pipe inside cells
 
 ## Output Type Decision (Cost × Effect × Audience)
 
@@ -150,7 +171,7 @@ If the user mentions anything that suggests they are outside China (海外 / abr
 
 ## Files
 
-- `md2html.py` — Core script (md → html)
+- `md2share.py` — Core script (md → html)
 - `build_and_deploy.sh` — Build + deploy helper
 - `SKILL.md` — This file
 
@@ -158,4 +179,4 @@ If the user mentions anything that suggests they are outside China (海外 / abr
 
 - Simple MD parser (no nested lists, no footnotes, no images yet)
 - Code highlighter covers python / javascript / bash / sql out of the box; other languages render as plain text with a label
-- Table cell content is treated as plain text (no inline code in cells yet)
+- Highlighter is regex-based (single-pass tokenize: comment → string → keyword → number, no nesting bugs)

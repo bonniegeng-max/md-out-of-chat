@@ -8,15 +8,25 @@ import re
 import html
 from pathlib import Path
 
+def split_row(line):
+    """按未转义的 | 切分表格行，支持 \\| 转义"""
+    line = line.strip()
+    if line.startswith('|'):
+        line = line[1:]
+    if line.endswith('|'):
+        line = line[:-1]
+    cells = re.split(r'(?<!\\)\|', line)
+    return [c.strip().replace('\\|', '|') for c in cells]
+
 def parse_md(md_text):
-    """简单 MD 解析器：标题/段落/表格/代码块/列表"""
+    """简单 MD 解析器：标题/段落/表格/代码块/列表/引用块"""
     lines = md_text.split('\n')
     blocks = []
     i = 0
-    
+
     while i < len(lines):
         line = lines[i]
-        
+
         # 代码块
         if line.strip().startswith('```'):
             lang = line.strip()[3:].strip() or 'text'
@@ -28,7 +38,7 @@ def parse_md(md_text):
             blocks.append({'type': 'code', 'lang': lang, 'content': '\n'.join(code_lines)})
             i += 1
             continue
-        
+
         # 标题
         m = re.match(r'^(#{1,6})\s+(.+)$', line)
         if m:
@@ -36,128 +46,169 @@ def parse_md(md_text):
             blocks.append({'type': 'h', 'level': level, 'content': m.group(2).strip()})
             i += 1
             continue
-        
+
+        # 引用块
+        if re.match(r'^\s*>', line):
+            quote_lines = []
+            while i < len(lines) and re.match(r'^\s*>', lines[i]):
+                quote_lines.append(re.sub(r'^\s*>\s?', '', lines[i]))
+                i += 1
+            blocks.append({'type': 'quote', 'content': ' '.join(quote_lines).strip()})
+            continue
+
         # 表格（必须前后有空行）
         if '|' in line and i + 1 < len(lines) and re.match(r'^\|?\s*[-:|\s]+\|?$', lines[i+1]):
-            header = [c.strip() for c in line.strip('|').split('|')]
+            header = split_row(line)
             i += 2  # 跳过分隔行
             rows = []
             while i < len(lines) and '|' in lines[i] and lines[i].strip():
-                rows.append([c.strip() for c in lines[i].strip('|').split('|')])
+                rows.append(split_row(lines[i]))
                 i += 1
             blocks.append({'type': 'table', 'header': header, 'rows': rows})
             continue
-        
-        # 列表
+
+        # 无序列表（含任务列表 - [ ] / - [x]）
         if re.match(r'^\s*[-*]\s+', line):
             items = []
             while i < len(lines) and re.match(r'^\s*[-*]\s+', lines[i]):
-                items.append(re.sub(r'^\s*[-*]\s+', '', lines[i]))
+                raw = re.sub(r'^\s*[-*]\s+', '', lines[i])
+                tm = re.match(r'^\[( |x|X)\]\s+(.*)$', raw)
+                if tm:
+                    items.append({'text': tm.group(2), 'task': 'done' if tm.group(1).lower() == 'x' else 'todo'})
+                else:
+                    items.append({'text': raw, 'task': None})
                 i += 1
             blocks.append({'type': 'ul', 'items': items})
             continue
-        
+
+        # 有序列表
+        if re.match(r'^\s*\d+\.\s+', line):
+            items = []
+            while i < len(lines) and re.match(r'^\s*\d+\.\s+', lines[i]):
+                items.append(re.sub(r'^\s*\d+\.\s+', '', lines[i]))
+                i += 1
+            blocks.append({'type': 'ol', 'items': items})
+            continue
+
         # 空行
         if not line.strip():
             i += 1
             continue
-        
+
         # 普通段落（合并连续行）
         para = [line]
         i += 1
-        while i < len(lines) and lines[i].strip() and not re.match(r'^(#{1,6}\s|```|\||\s*[-*]\s)', lines[i]):
+        while i < len(lines) and lines[i].strip() and not re.match(
+                r'^(#{1,6}\s|```|\||\s*[-*]\s|\s*\d+\.\s|\s*>)', lines[i]):
             para.append(lines[i])
             i += 1
         blocks.append({'type': 'p', 'content': ' '.join(para).strip()})
-    
+
     return blocks
 
 def highlight_code(code, lang):
-    """简单代码高亮（关键字 + 字符串 + 注释）"""
-    # HTML 转义
-    code = html.escape(code)
-    
+    """单遍 tokenize 高亮：注释 → 字符串 → 关键字 → 数字，互不嵌套错乱"""
+    lang_l = lang.lower()
+
     keywords_map = {
         'python': ['def', 'class', 'import', 'from', 'return', 'if', 'else', 'elif', 'for', 'while', 'in', 'is', 'not', 'and', 'or', 'try', 'except', 'finally', 'with', 'as', 'lambda', 'pass', 'break', 'continue', 'yield', 'async', 'await', 'True', 'False', 'None', 'self'],
         'javascript': ['function', 'const', 'let', 'var', 'return', 'if', 'else', 'for', 'while', 'do', 'switch', 'case', 'break', 'continue', 'class', 'extends', 'new', 'this', 'super', 'import', 'export', 'from', 'async', 'await', 'try', 'catch', 'finally', 'throw', 'typeof', 'instanceof', 'true', 'false', 'null', 'undefined'],
         'bash': ['if', 'then', 'fi', 'else', 'elif', 'for', 'while', 'do', 'done', 'case', 'esac', 'function', 'return', 'echo', 'export', 'local'],
         'sql': ['SELECT', 'FROM', 'WHERE', 'JOIN', 'INNER', 'LEFT', 'RIGHT', 'ON', 'GROUP', 'BY', 'ORDER', 'HAVING', 'LIMIT', 'INSERT', 'INTO', 'VALUES', 'UPDATE', 'SET', 'DELETE', 'CREATE', 'TABLE', 'DROP', 'ALTER', 'AS', 'AND', 'OR', 'NOT', 'NULL', 'IS'],
     }
-    
-    keywords = keywords_map.get(lang.lower(), [])
 
-    # 把所有 HTML 转义（避免被字符串正则误伤）
-    code = code.replace('&', '\x00AMP\x00').replace('<', '\x00LT\x00').replace('>', '\x00GT\x00')
+    comment_pat = {
+        'python': r'#[^\n]*',
+        'bash': r'#[^\n]*',
+        'javascript': r'//[^\n]*|/\*[\s\S]*?\*/',
+        'sql': r'--[^\n]*',
+    }.get(lang_l)
 
-    # 高亮关键字（用 \x01N\x01 包裹）
-    for kw in sorted(keywords, key=len, reverse=True):
-        code = re.sub(r'\b' + re.escape(kw) + r'\b', '\x01K\x01' + kw + '\x01E\x01', code)
+    keywords = keywords_map.get(lang_l, [])
 
-    # 高亮字符串
-    code = re.sub(r'("[^"\n]*"|\'[^\'\n]*\')', '\x01S\x01\1\x01E\x01', code)
+    alts = []
+    if comment_pat:
+        alts.append(f'(?P<cmt>{comment_pat})')
+    alts.append(r"(?P<str>\"[^\"\n]*\"|'[^'\n]*'|`[^`\n]*`)")
+    if keywords:
+        kw_alt = '|'.join(re.escape(k) for k in sorted(keywords, key=len, reverse=True))
+        alts.append(rf'(?P<kw>\b(?:{kw_alt})\b)')
+    alts.append(r'(?P<num>\b\d+\.?\d*\b)')
 
-    # 高亮数字
-    code = re.sub(r'\b(\d+\.?\d*)\b', '\x01N\x01\1\x01E\x01', code)
+    pattern = re.compile('|'.join(alts))
 
-    # 高亮注释
-    if lang.lower() in ('python', 'bash', 'javascript'):
-        code = re.sub(r'(#[^\n]*)', '\x01C\x01\1\x01E\x01', code)
-    if lang.lower() in ('sql'):
-        code = re.sub(r'(--[^\n]*)', '\x01C\x01\1\x01E\x01', code)
+    out = []
+    pos = 0
+    for m in pattern.finditer(code):
+        out.append(html.escape(code[pos:m.start()]))
+        if m.group('cmt') is not None:
+            cls = 'cmt'
+        elif m.group('str') is not None:
+            cls = 'str'
+        elif m.group('kw') is not None:
+            cls = 'kw'
+        else:
+            cls = 'num'
+        out.append(f'<span class="{cls}">{html.escape(m.group(0))}</span>')
+        pos = m.end()
+    out.append(html.escape(code[pos:]))
 
-    # 把占位符换回 HTML
-    repl = {
-        '\x00AMP\x00': '&amp;',
-        '\x00LT\x00': '&lt;',
-        '\x00GT\x00': '&gt;',
-        '\x01K\x01': '<span class="kw">',
-        '\x01S\x01': '<span class="str">',
-        '\x01N\x01': '<span class="num">',
-        '\x01C\x01': '<span class="cmt">',
-        '\x01E\x01': '</span>',
-    }
-    for k, v in repl.items():
-        code = code.replace(k, v)
+    return ''.join(out)
 
-    return code
+def render_inline(text):
+    """内联处理：**bold** *italic* `code` [link](url)"""
+    text = html.escape(text)
+
+    # 链接 [text](url) —— 只放行安全协议
+    def link_repl(m):
+        label, url = m.group(1), m.group(2)
+        if re.match(r'^(https?:|mailto:)', url, re.I):
+            return f'<a href="{url}" target="_blank" rel="noopener">{label}</a>'
+        return m.group(0)
+    text = re.sub(r'\[([^\]]+)\]\(([^)\s]+)\)', link_repl, text)
+
+    text = re.sub(r'\*\*([^*]+)\*\*', r'<strong>\1</strong>', text)
+    text = re.sub(r'\*([^*]+)\*', r'<em>\1</em>', text)
+    text = re.sub(r'`([^`]+)`', r'<code class="inline">\1</code>', text)
+    return text
 
 def render_html(blocks, title="md2view"):
     """渲染 blocks 为 HTML"""
     parts = []
     parts.append(f'<h1 class="title">{html.escape(title)}</h1>')
-    
+
     for b in blocks:
         if b['type'] == 'h':
             lvl = b['level']
             tag = f'h{lvl}'
-            parts.append(f'<{tag} class="{tag}">{html.escape(b["content"])}</{tag}>')
+            parts.append(f'<{tag} class="{tag}">{render_inline(b["content"])}</{tag}>')
         elif b['type'] == 'p':
-            # 内联处理：**bold** *italic* `code`
-            text = html.escape(b['content'])
-            text = re.sub(r'\*\*([^*]+)\*\*', r'<strong>\1</strong>', text)
-            text = re.sub(r'\*([^*]+)\*', r'<em>\1</em>', text)
-            text = re.sub(r'`([^`]+)`', r'<code class="inline">\1</code>', text)
-            parts.append(f'<p>{text}</p>')
+            parts.append(f'<p>{render_inline(b["content"])}</p>')
+        elif b['type'] == 'quote':
+            parts.append(f'<blockquote>{render_inline(b["content"])}</blockquote>')
         elif b['type'] == 'ul':
             parts.append('<ul>')
             for item in b['items']:
-                text = html.escape(item)
-                text = re.sub(r'\*\*([^*]+)\*\*', r'<strong>\1</strong>', text)
-                parts.append(f'<li>{text}</li>')
+                if item.get('task'):
+                    cls = 'task-done' if item['task'] == 'done' else 'task-todo'
+                    box = '☑' if item['task'] == 'done' else '☐'
+                    parts.append(f'<li class="{cls}"><span class="cbx">{box}</span> {render_inline(item["text"])}</li>')
+                else:
+                    parts.append(f'<li>{render_inline(item["text"])}</li>')
             parts.append('</ul>')
+        elif b['type'] == 'ol':
+            parts.append('<ol>')
+            for item in b['items']:
+                parts.append(f'<li>{render_inline(item)}</li>')
+            parts.append('</ol>')
         elif b['type'] == 'code':
             code_html = highlight_code(b['content'], b['lang'])
             lang_label = b['lang'].upper() if b['lang'] else 'TEXT'
-            block_id = f'code-{len(parts)}'
-            # 原始代码（用于复制）= 去 HTML 标签
-            raw_code = b['content']
-            import html as _html
-            raw_escaped = _html.escape(raw_code).replace("'", "&#39;")
             parts.append(
-                f'<div class="code-block" data-code-id="{block_id}">'
+                f'<div class="code-block">'
                 f'<div class="code-header">'
                 f'<span class="code-lang">{lang_label}</span>'
-                f'<button class="copy-btn" data-code="{raw_escaped}">Copy</button>'
+                f'<button class="copy-btn">Copy</button>'
                 f'</div>'
                 f'<pre><code>{code_html}</code></pre>'
                 f'</div>'
@@ -166,17 +217,17 @@ def render_html(blocks, title="md2view"):
             parts.append('<div class="table-wrap"><table>')
             parts.append('<thead><tr>')
             for h in b['header']:
-                parts.append(f'<th>{html.escape(h)}</th>')
+                parts.append(f'<th>{render_inline(h)}</th>')
             parts.append('</tr></thead>')
             parts.append('<tbody>')
             for ri, row in enumerate(b['rows']):
                 cls = 'odd' if ri % 2 else 'even'
                 parts.append(f'<tr class="{cls}">')
                 for c in row:
-                    parts.append(f'<td>{html.escape(c)}</td>')
+                    parts.append(f'<td>{render_inline(c)}</td>')
                 parts.append('</tr>')
             parts.append('</tbody></table></div>')
-    
+
     return '\n'.join(parts)
 
 def build_page(content_html, title="md2view"):
@@ -230,10 +281,27 @@ p {
 }
 strong { color: var(--primary); font-weight: 600; }
 em { color: var(--accent); }
-ul {
+a {
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(59, 125, 216, 0.35);
+  word-break: break-all;
+}
+blockquote {
+  margin: 16px 0;
+  padding: 10px 16px;
+  border-left: 4px solid var(--accent);
+  background: #EEF2F7;
+  color: var(--text-light);
+  border-radius: 0 6px 6px 0;
+}
+ul, ol {
   margin: 12px 0 12px 24px;
 }
 li { margin: 6px 0; }
+li.task-done, li.task-todo { list-style: none; margin-left: -20px; }
+li.task-done { color: var(--text-light); text-decoration: line-through; }
+li.task-done .cbx { text-decoration: none; }
 code.inline {
   background: #EEF2F7;
   color: var(--primary);
@@ -248,8 +316,6 @@ code.inline {
   border-left: 3px solid var(--primary);
   border-radius: 6px;
   overflow: hidden;
-}
-.code-block {
   position: relative;
 }
 .code-header {
@@ -329,14 +395,8 @@ tr:hover { background: #EEF2F7; }
     js = """
 document.querySelectorAll('.copy-btn').forEach(btn => {
   btn.addEventListener('click', async () => {
-    const code = btn.dataset.code
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&quot;/g, '"')
-      .replace(/&#39;/g, "'")
-      .replace(/&lt;span[^&]*&gt;/g, '')
-      .replace(/&lt;\\/span&gt;/g, '');
+    const pre = btn.closest('.code-block') && btn.closest('.code-block').querySelector('pre');
+    const code = pre ? pre.textContent : '';
     btn.classList.add('copying');
     btn.textContent = 'Copying...';
     try {
@@ -388,21 +448,21 @@ document.querySelectorAll('.copy-btn').forEach(btn => {
 
 def main():
     if len(sys.argv) < 2:
-        print("用法: python md2html.py <md文件> [输出html]")
+        print("用法: python md2share.py <md文件> [输出html]")
         sys.exit(1)
-    
+
     md_path = Path(sys.argv[1])
     if not md_path.exists():
         print(f"找不到: {md_path}")
         sys.exit(1)
-    
+
     output_path = Path(sys.argv[2]) if len(sys.argv) > 2 else md_path.with_suffix('.html')
-    
+
     md_text = md_path.read_text(encoding='utf-8')
     blocks = parse_md(md_text)
     content = render_html(blocks, title=md_path.stem)
     html_doc = build_page(content, title=md_path.stem)
-    
+
     output_path.write_text(html_doc, encoding='utf-8')
     print(f"✅ 已生成: {output_path}")
 

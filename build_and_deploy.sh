@@ -43,5 +43,5 @@ fi
 # 5. 显示
 echo "→ 部署准备："
 ls -la "$DIST_DIR"
-echo "→ index.html 大小: $(stat -c%s $DIST_DIR/index.html) bytes"
+echo "→ index.html 大小: $(wc -c < "$DIST_DIR/index.html" | tr -d ' ') bytes"
 echo "✅ 准备完成，下一步：调用 deploy 工具，dist_dir=$DIST_DIR"
