@@ -4,6 +4,7 @@ description: 把 AI 在聊天里写出的 Markdown 转成手机能直接看的�
 version: 1.1.0
 homepage: https://github.com/bonniegeng-max/md-out-of-chat
 license: MIT
+metadata: {"clawdbot":{"emoji":"📄","requires":{"bins":["python3"],"packages":[],"env":[]}}}
 ---
 
 # md-out-of-chat
