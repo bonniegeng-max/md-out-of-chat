@@ -1,7 +1,7 @@
 ---
 name: md-out-of-chat
-description: 把 AI 在聊天里写出的 Markdown 转成手机能直接看的网页或长图。解决微信/飞书/Slack 里 .md 打不开、代码错位、表格对不齐的问题。输出带语法高亮、语言标签和一键复制按钮的移动端 HTML，或手机尺寸长截图。本地运行，数据不出本机。当用户说"把这个 md 转成能看的""我在手机上看""转一下发给朋友"时使用。
-version: 1.1.0
+description: Convert a Markdown file into a mobile-friendly local HTML page or phone-sized screenshot. Safe default is local-only; a public web URL is only produced when the user explicitly asks for it or the host platform deploy tool is used. Respond in the user's current language.
+version: 1.1.4
 homepage: https://github.com/bonniegeng-max/md-out-of-chat
 license: MIT
 metadata: {"clawdbot":{"emoji":"📄","requires":{"bins":["python3"],"packages":[],"env":[]}}}
@@ -13,6 +13,10 @@ metadata: {"clawdbot":{"emoji":"📄","requires":{"bins":["python3"],"packages":
 
 AI agents live in chat (WeChat, Feishu, Slack, Discord, …) and love to write `.md`. But `.md` doesn't render well in any of those apps. Code breaks, tables misalign, links look dead. This skill is the bridge: it takes a `.md` file and turns it into a mobile-friendly, copyable, shareable view.
 
+## Activation
+
+Only activate this skill when the user explicitly mentions it by name (e.g. "use md-out-of-chat", "用 md-out-of-chat 转换") or clearly asks to convert a Markdown file into a readable view / screenshot. Do not activate on vague phrases like "show me this" or "转一下" alone.
+
 ## The Problem
 
 - `.md` files **cannot be opened in WeChat** on mobile
@@ -23,12 +27,13 @@ AI agents live in chat (WeChat, Feishu, Slack, Discord, …) and love to write `
 ## Input
 
 - Path to a `.md` file
-- Type: `web` (deploy to public URL) or `screenshot` (render to PNG)
+- Optional output type: `html` (local file, default), `web` (public URL only when user explicitly requests it and a deploy tool is available), or `screenshot` (render to PNG)
 
 ## Output
 
-- `web` → Public URL, opens in any mobile browser
-- `screenshot` → One or more PNG images at phone screen size
+- Default: a local `.html` file that opens in any mobile browser
+- `screenshot`: one or more PNG images at phone screen size
+- `web`: a public URL **only** if the user explicitly asks for it and the assistant has a deploy tool; otherwise fall back to local HTML + screenshot
 
 ## Design Spec (Blue / White / Gray — Minimal & Clean)
 
@@ -91,58 +96,27 @@ AI agents live in chat (WeChat, Feishu, Slack, Discord, …) and love to write `
 - Cell content supports bold / italic / inline code / links
 - `\|` escapes a literal pipe inside cells
 
-## Output Type Decision (Cost × Effect × Audience)
+## Output Type Decision
 
-The right output depends on **who you're sharing with** and **what they need to do** with the content.
+Default to **local HTML** for safety and privacy. Only produce a public web URL when the user explicitly asks for one and the assistant has a safe deploy path. Offer a screenshot as an alternative when the user asks for an image or when sharing as a picture is more reliable.
 
-### Default: Always Generate Web URL
+### Default: Local HTML
 
-When the user says "show me this" without specifying output type, the assistant should **default to web URL**. This is the safest choice because:
-- It works for both personal reading and sharing
-- It supports copy / quote / highlight
-- The user can ask for a screenshot afterward if they need one
+When the user asks to view a Markdown file without specifying the output type, generate a local `.html` file. Tell the user where it is and that it can be opened on a phone browser.
 
-### When to Switch to Screenshot (Without Asking)
+### When to Generate a Screenshot
 
-The assistant may switch to a screenshot **only** when:
-- The content is very short (< 100 chars) AND has no code or table
+Generate a screenshot only when:
 - The user explicitly says "screenshot" / "image" / "图片" / "截个图"
-- The user says "send to a friend" / "发给朋友" (signals they care about share-ability)
+- The user asks for a picture to send to someone
 
-### Never Ask "Is This For You or For Someone Else?"
+### When to Generate a Public Web URL
 
-This question is annoying because the user often hasn't thought it through. The assistant should:
-- **Make a sensible default** (web URL)
-- **Tell the user** what it chose and why, in one line
-- **Offer the alternative** without forcing a choice
+Generate a public URL only when:
+- The user explicitly says "web" / "link" / "URL" / "公开链接"
+- The assistant has a trusted, temporary deploy tool available
 
-**Good response:**
-> "我帮你生成了 web 链接：https://....  （如果你想要截图也可以告诉我）"
-
-**Bad response:**
-> "你想自己看还是给别人看？要不要截图？"
-
-### When In Doubt: Generate Both, But Tell the User
-
-If the content is borderline (e.g. 200 chars with one small table), the assistant can:
-- Generate the web URL
-- Also screenshot the first screen
-- Tell the user "两个都给你了"
-
-### The "国内用户 + 兜底" Pattern
-
-For the most common case (a user in China, default assumption), the safest output is:
-1. **Web URL** as the primary (rich, copy-able, fast in China)
-2. **A screenshot of the first screen** as backup (works even when network is flaky)
-
-This costs the assistant almost nothing extra (both are generated locally) and removes a whole class of "your link didn't load" complaints.
-
-### When the User Is Likely Overseas
-
-If the user mentions anything that suggests they are outside China (海外 / abroad / 给国外朋友看), the assistant should:
-- **Prefer screenshot over link** — because links in China-platforms are slow abroad, and links on Vercel/Netlify are slow in China; a screenshot has zero network dependency once delivered
-- Optionally also generate a Vercel/Netlify link as a secondary option
-- Tell the user "我给你截图了，** 想看完整版可点这个链接"
+Never generate a public URL silently. If deployment is not available, fall back to local HTML and explain why.
 
 ## Mobile Responsive
 
@@ -153,27 +127,32 @@ If the user mentions anything that suggests they are outside China (海外 / abr
 
 ## Privacy
 
-- Runs **locally**, no data uploaded to any cloud
-- `web` deployment uses the assistant's built-in server with a **temporary URL**
-- The user does not need to register any account
-- This skill **never** sends user content to external APIs without explicit consent
+- Runs **locally** by default. The core `md2share.py` only reads the input `.md` and writes a local `.html` file.
+- `build_and_deploy.sh` only prepares a local `dist/` folder; it does not upload anything.
+- `screenshot.sh` renders the local HTML with network requests blocked, so no remote resources are fetched.
+- A public URL is produced **only** when the user explicitly requests it and the assistant has a trusted deploy tool.
+- The user does not need to register any account.
+- This skill **never** sends user content to external APIs without explicit consent.
 
 ## Usage Example
 
 ```bash
 # 1. Write or place your .md file
-# 2. Run the build script
-./build_and_deploy.sh my-notes.md my-view
+# 2. Generate a local HTML file
+python3 md2share.py my-notes.md
 
-# 3. Deploy via your platform's deploy tool
-#    dist_dir = ./dist
-# 4. Get the URL and open on phone
+# 3. (Optional) Build dist/ for deployment
+./build_and_deploy.sh my-notes.md
+
+# 4. (Optional) Generate a phone-sized screenshot
+./screenshot.sh my-notes.html my-notes.png
 ```
 
 ## Files
 
-- `md2share.py` — Core script (md → html)
-- `build_and_deploy.sh` — Build + deploy helper
+- `md2share.py` — Core script (md → local html)
+- `build_and_deploy.sh` — Local build helper (prepares `dist/`)
+- `screenshot.sh` — Local screenshot helper (network-isolated)
 - `SKILL.md` — This file
 
 ## Limitations

@@ -6,3 +6,4 @@ __pycache__/
 # 敏感（万一你之后放了 token 到本地）
 *.token
 *.secret
+test_*.html

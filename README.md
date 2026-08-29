@@ -7,9 +7,9 @@
 
 ## 30-Second Pitch · 30 秒介绍
 
-**中文**：在 IM 里（微信/飞书/Slack）跟 AI 聊，AI 给你写了一份 markdown，**但手机端根本看不了**。这个 skill 解决的就是这个 —— 把 .md 转成手机浏览器能直接打开的网页版：表格对齐、代码带语言标签 + 一键复制。告诉你的 AI "用 md-out-of-chat 装一下"，**它给你一个链接，微信里点开就能看**。本地跑，数据不外传。
+**中文**：在 IM 里（微信/飞书/Slack）跟 AI 聊，AI 给你写了一份 markdown，**但手机端根本看不了**。这个 skill 解决的就是这个 —— 把 .md 转成手机浏览器能直接打开的本地网页版：表格对齐、代码带语言标签 + 一键复制。告诉你的 AI "用 md-out-of-chat 转换这份 md"，**它生成一个本地 HTML 文件，手机上点开就能看**。本地跑，数据不外传。
 
-**English**: Ever get a Markdown file in chat and not be able to read it on your phone? Code breaks, tables misalign, you can't copy a snippet. This skill turns any `.md` file into a mobile-friendly web page with proper tables, syntax-highlighted code blocks, and one-tap copy. Just say "show me this as md-out-of-chat" to your AI agent, and you get a link that opens in any phone browser. Local by default, no data uploaded.
+**English**: Ever get a Markdown file in chat and not be able to read it on your phone? Code breaks, tables misalign, you can't copy a snippet. This skill turns any `.md` file into a mobile-friendly web page with proper tables, syntax-highlighted code blocks, and one-tap copy. Just say "use md-out-of-chat to convert this" to your AI agent, and you get a local HTML file that opens in any phone browser. Local by default, no data uploaded.
 
 ---
 
@@ -36,11 +36,13 @@ Run the file through this skill. It produces:
 
 把文件过一遍这个 skill，你得到：
 
-- **A web URL** — opens in any mobile browser, with proper tables, code blocks with language labels and **one-tap copy**
-- **Or a long screenshot** — if the user is abroad, or you just want to share as-is
+- **A local HTML file** — opens in any mobile browser, with proper tables, code blocks with language labels and **one-tap copy**
+- **Or a long screenshot** — when you explicitly ask for an image, or want to share as-is
 
-- **一个 web 链接** — 任何手机浏览器都能打开，表格对齐、代码带语言标签 + **一键复制**
-- **或一张长图截图** — 如果用户在国外，或者你想"原样分享"
+- **一个本地 HTML 文件** — 任何手机浏览器都能打开，表格对齐、代码带语言标签 + **一键复制**
+- **或一张长图截图** — 当你明确要图片，或想"原样分享"
+
+A public web URL is only generated when you explicitly ask for it and your agent has a trusted deploy tool.
 
 ---
 
@@ -69,22 +71,22 @@ Try it on a sample file: see `demo.md` for the input.
 
 ## How to Use · 怎么用
 
-Once installed, talk to your AI agent naturally:
+Once installed, talk to your AI agent with an explicit skill mention:
 
-> "把这份 md 装成我能看的"
-> "show me this as md-out-of-chat"
-> "用 md-out-of-chat 处理一下"
-> "转一下，** 我在手机上看"
+> "用 md-out-of-chat 转换这份 md"
+> "use md-out-of-chat to convert this markdown"
+> "把这份 md 转成手机能看的 HTML"
 
-The agent decides the right output based on content and your situation:
+The agent decides the right output based on your explicit request:
 
 | 场景 · Scenario | 输出 · Output |
 |-----------------|---------------|
-| 短，无代码/表格 · Short, no code/table | 截图 · Screenshot |
-| 有代码/表格 · Has code/table | Web URL + 截图兜底 |
-| "发给朋友" · Send to friend | 截图 · Screenshot |
-| "海外/国外" · Send abroad | 截图 · Screenshot |
-| 默认（国内用户）· Default (China) | Web URL + 截图 |
+| 没有特别说明 · No specific output requested | 本地 HTML · Local HTML file |
+| "截图/图片" · "screenshot/image" | 截图 · Screenshot |
+| "公开链接/URL" 且有部署工具 · "public link/URL" with deploy tool | Web URL |
+| "发给朋友" · "send to friend" | 先问用户要截图还是链接 · Ask user: screenshot or link |
+
+The default is always local-first. A public URL is never generated silently.
 
 ---
 
@@ -131,10 +133,10 @@ Not for: pure desktop workflows, or if you never read on mobile.
 There are other "md to html" skills (`awesome-copilot/markdown-to-html`, `haidang1810/md2html`). md-out-of-chat is different because:
 
 - **Built for IM** — not for "I want to publish a blog post". The output is sized for chat-shared links.
-- **Default = web URL + screenshot together** — most other tools force you to pick one.
+- **Local-first** — default output is a local HTML file; public URL only with explicit opt-in.
 - **Copy button on every code block** — read the code on your phone, copy with one tap.
 - **Multi-agent** — same SKILL.md works for Claude Code, Codex, OpenClaw, Copilot, etc.
-- **Local by default** — no analytics, no cloud, no login.
+- **No analytics, no cloud, no login**.
 
 ---
 
@@ -142,8 +144,9 @@ There are other "md to html" skills (`awesome-copilot/markdown-to-html`, `haidan
 
 - `SKILL.md` — English spec (the one the agent reads)
 - `SKILL.zh.md` — 中文 spec (你读这个)
-- `md2share.py` — the core script: md → mobile-friendly HTML
-- `build_and_deploy.sh` — helper to build and prep for deployment
+- `md2share.py` — the core script: md → local mobile-friendly HTML
+- `build_and_deploy.sh` — helper to build a local `dist/` folder
+- `screenshot.sh` — helper to render a local PNG (network-isolated)
 - `demo.md` — a tiny example to test with
 - `LICENSE` — MIT
 - `README.md` — 你现在看的这个
@@ -152,12 +155,14 @@ There are other "md to html" skills (`awesome-copilot/markdown-to-html`, `haidan
 
 ## Privacy · 隐私
 
-- **Local by default** — script only produces a `.html` file. Nothing leaves your machine.
-- **Web deploy is opt-in** — you can deploy to the assistant's built-in web server, or to Vercel/Netlify/GitHub Pages, or not at all.
+- **Local by default** — `md2share.py` only produces a `.html` file. Nothing leaves your machine unless you explicitly ask for a public URL.
+- **Network-isolated screenshot** — `screenshot.sh` blocks external requests while rendering.
+- **Web deploy is opt-in** — only when you explicitly request it and your agent has a trusted deploy tool.
 - **No telemetry** — the script does not phone home.
 
-- **默认本地跑** — 脚本只生成 `.html` 文件，**数据不出你电脑**
-- **部署可选** — 你可以部署到 assistant 自带 web server，或 Vercel/Netlify/GitHub Pages，或完全不部署
+- **默认本地跑** — `md2share.py` 只生成 `.html` 文件，**数据不出你电脑**
+- **截图隔离网络** — `screenshot.sh` 渲染时会拦截外部请求
+- **公开链接需明确授权** — 只有在你明确要求、且有可信部署工具时才生成
 - **无任何统计上报**
 
 ---
@@ -170,10 +175,11 @@ There are other "md to html" skills (`awesome-copilot/markdown-to-html`, `haidan
 - 表格 cell 内联格式（粗体/斜体/行内代码/链接）+ `\|` 转义
 - 代码块一键复制按钮（3 状态：Copy → Copying... → Copied! → 2 秒回 Copy）
 - 语法高亮重写为单遍 tokenize（注释→字符串→关键字→数字），修复了字符串内关键字误高亮和 span 嵌套错乱
+- 默认本地 HTML 输出，公开链接需用户明确授权
 - 蓝白灰简约风格
 - 移动端适配
 - 中文字体（Noto CJK）
-- **HTML → PNG 长图截图**（`./screenshot.sh`，可选）
+- **HTML → PNG 长图截图**（`./screenshot.sh`，网络隔离，可选）
 
 🟡 Coming next:
 - 嵌套列表

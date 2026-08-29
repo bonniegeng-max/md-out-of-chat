@@ -39,11 +39,18 @@ const puppeteer = require('puppeteer-core');
   const browser = await puppeteer.launch({
     executablePath: '$CHROME',
     headless: 'shell',
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-background-networking']
   });
   const page = await browser.newPage();
+  // 阻断所有外部网络请求，确保本地 HTML 渲染不会拉取远程资源
+  await page.setRequestInterception(true);
+  page.on('request', req => {
+    const url = req.url();
+    if (url.startsWith('file://')) { req.continue(); }
+    else { req.abort('blockedbyclient'); }
+  });
   await page.setViewport({ width: parseInt('$WIDTH'), height: 800, deviceScaleFactor: 2 });
-  await page.goto('file://$INPUT_ABS', { waitUntil: 'networkidle0' });
+  await page.goto('file://$INPUT_ABS', { waitUntil: 'load' });
   await page.screenshot({ path: '$OUTPUT_ABS', fullPage: true });
   await browser.close();
   console.log('✅ 截图完成: $OUTPUT_ABS');
