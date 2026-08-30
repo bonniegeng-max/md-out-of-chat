@@ -55,14 +55,13 @@ agent 会自动识别。
 - `SKILL.zh.md` — 中文 spec（你读这个）
 - `md2share.py` — 核心脚本：md → 本地 HTML
 - `build_and_deploy.sh` — 本地构建辅助（只生成 dist/，不上传）
-- `screenshot.sh` — 本地截图辅助（渲染时阻断外部网络请求）
 - `demo.md` — 测试用的小例子
 - `README.md` — GitHub 首页展示用
 
 ## 隐私
 
 - **默认本地跑** — 核心脚本只生成 `.html` 文件，**数据不出你电脑**
-- `screenshot.sh` 渲染本地 HTML 时会拦截所有外部请求
+- 截图功能由宿主环境自带的浏览器/截图工具完成，本 skill 不内置任何浏览器自动化代码
 - 公开链接**只在用户明确要求、且 assistant 有可信部署工具时**才生成
 - 本地图片（`![alt](./image.png)`）默认只有和 `.md` 同目录或其子目录下的才会内嵌为 base64；绝对路径和 `../` 会被拦截，除非显式加 `--embed-local-images=all`
 - 远程图片不会自动下载，只会渲染成链接占位

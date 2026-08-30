@@ -1,7 +1,7 @@
 ---
 name: md-out-of-chat
 description: Convert a Markdown file into a mobile-friendly local HTML page or phone-sized screenshot. Safe default is local-only; a public web URL is only produced when the user explicitly asks for it or the host platform deploy tool is used. Respond in the user's current language.
-version: 1.3.1
+version: 1.3.2
 homepage: https://github.com/bonniegeng-max/md-out-of-chat
 license: MIT
 metadata: {"clawdbot":{"emoji":"📄","requires":{"bins":["python3"],"packages":[],"env":[]}}}
@@ -109,6 +109,7 @@ When the user asks to view a Markdown file without specifying the output type, g
 Generate a screenshot only when:
 - The user explicitly says "screenshot" / "image" / "图片" / "截个图"
 - The user asks for a picture to send to someone
+- This skill ships no browser automation script; render the PNG with the host environment's own screenshot/browser tool. If none is available, deliver local HTML and explain.
 
 ### When to Generate a Public Web URL
 
@@ -129,7 +130,7 @@ Never generate a public URL silently. If deployment is not available, fall back 
 
 - Runs **locally** by default. The core `md2share.py` only reads the input `.md` and writes a local `.html` file.
 - `build_and_deploy.sh` only prepares a local `dist/` folder; it does not upload anything.
-- `screenshot.sh` renders the local HTML with network requests blocked, so no remote resources are fetched.
+- Screenshots are rendered by the host environment's own browser/screenshot tool; this skill includes no browser automation code.
 - A public URL is produced **only** when the user explicitly requests it and the assistant has a trusted deploy tool.
 - **Local images** (`![alt](./image.png)`) are embedded as base64 by default, but **only** if they live in the same directory as the Markdown file or a subdirectory of it. Absolute paths and parent-directory traversal (`../`) are blocked unless the user explicitly passes `--embed-local-images=all`.
 - **Remote images** are never fetched automatically; they are rendered as a link placeholder to avoid network requests.
@@ -149,15 +150,13 @@ python3 md2share.py my-notes.md --embed-local-images=all
 # 4. (Optional) Build dist/ for deployment
 ./build_and_deploy.sh my-notes.md
 
-# 5. (Optional) Generate a phone-sized screenshot
-./screenshot.sh my-notes.html my-notes.png
+# 5. (Optional) Screenshot: render my-notes.html with your own browser/screenshot tool
 ```
 
 ## Files
 
 - `md2share.py` — Core script (md → local html)
 - `build_and_deploy.sh` — Local build helper (prepares `dist/`)
-- `screenshot.sh` — Local screenshot helper (network-isolated)
 - `SKILL.md` — This file
 
 ## Limitations

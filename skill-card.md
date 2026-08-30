@@ -22,17 +22,13 @@ Global
 
 ## Known Risks and Mitigations:
 
-Risk: The skill writes HTML files and PNG screenshots to the user's local filesystem (`dist/`, or the path specified by the output argument).
+Risk: The skill writes HTML files to the user's local filesystem (`dist/`, or the path specified by the output argument).
 
 Mitigation: All writes are local and explicit — the user supplies the input path and the skill produces an output file. No data is uploaded to remote services by the core script.
 
 Risk: The optional `build_and_deploy.sh` helper invokes Python to prepare a local `dist/` folder.
 
 Mitigation: This script is opt-in and only writes files locally. It does not upload anything.
-
-Risk: The optional `screenshot.sh` helper uses Puppeteer + Chrome to render a local PNG from a local HTML file.
-
-Mitigation: This script is opt-in. It blocks all external network requests during rendering and only processes locally generated HTML files.
 
 Risk: Markdown links are rendered as `<a>` tags.
 
@@ -51,16 +47,16 @@ Mitigation: By default, only image files located in the same directory as the in
 
 **Output Type(s):** [Markdown, HTML, Shell commands, Local files]
 
-**Output Format:** [Mobile-friendly HTML page or phone-sized PNG screenshot]
+**Output Format:** [Mobile-friendly HTML page; PNG screenshot only when the host agent provides its own rendering tool]
 
 **Output Parameters:** [1D]
 
-**Other Properties Related to Output:** [Produces a single local `.html` file, an optional local `.png` screenshot, and shell commands to build them. A public URL is only produced when the user explicitly requests it and the host agent has a trusted deploy tool.]
+**Other Properties Related to Output:** [Produces a single local `.html` file and shell commands to build it. This skill ships no browser automation scripts; screenshots, if needed, are rendered by the host agent's own tools. A public URL is only produced when the user explicitly requests it and the host agent has a trusted deploy tool.]
 
 ## Skill Version(s):
 
-1.3.1 (source: frontmatter and release metadata)
+1.3.2 (source: frontmatter and release metadata)
 
 ## Ethical Considerations:
 
-Users should evaluate whether this skill is appropriate for their environment, review generated HTML/screenshots before sharing, and apply their organization's safety, security, and compliance requirements before deployment.
+Users should evaluate whether this skill is appropriate for their environment, review generated HTML before sharing, and apply their organization's safety, security, and compliance requirements before deployment.

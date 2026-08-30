@@ -146,7 +146,6 @@ There are other "md to html" skills (`awesome-copilot/markdown-to-html`, `haidan
 - `SKILL.zh.md` — 中文 spec (你读这个)
 - `md2share.py` — the core script: md → local mobile-friendly HTML
 - `build_and_deploy.sh` — helper to build a local `dist/` folder
-- `screenshot.sh` — helper to render a local PNG (network-isolated)
 - `demo.md` — a tiny example to test with
 - `LICENSE` — MIT
 - `README.md` — 你现在看的这个
@@ -156,14 +155,14 @@ There are other "md to html" skills (`awesome-copilot/markdown-to-html`, `haidan
 ## Privacy · 隐私
 
 - **Local by default** — `md2share.py` only produces a `.html` file. Nothing leaves your machine unless you explicitly ask for a public URL.
-- **Network-isolated screenshot** — `screenshot.sh` blocks external requests while rendering.
+- **No browser automation shipped** — screenshots, if you need one, are rendered by your own browser/screenshot tool; the skill contains no Puppeteer/Chrome code.
 - **Web deploy is opt-in** — only when you explicitly request it and your agent has a trusted deploy tool.
 - **Sandboxed local images** — local images are embedded as base64 only when they live in the same directory as the `.md` file or a subdirectory of it. Absolute paths and `../` traversal are blocked unless you pass `--embed-local-images=all`.
 - **Remote images never auto-fetch** — they render as a link placeholder, so no network request is made.
 - **No telemetry** — the script does not phone home.
 
 - **默认本地跑** — `md2share.py` 只生成 `.html` 文件，**数据不出你电脑**
-- **截图隔离网络** — `screenshot.sh` 渲染时会拦截外部请求
+- **不内置浏览器自动化** — 需要截图时用你自己的浏览器/截图工具渲染，skill 内不含 Puppeteer/Chrome 代码
 - **公开链接需明确授权** — 只有在你明确要求、且有可信部署工具时才生成
 - **本地图片沙箱** — 只有与 `.md` 同目录或其子目录下的图片才会内嵌为 base64；绝对路径和 `../` 会被拦截，除非显式加 `--embed-local-images=all`
 - **远程图片不自动下载** — 只渲染为链接占位，不会发起网络请求
@@ -183,11 +182,10 @@ There are other "md to html" skills (`awesome-copilot/markdown-to-html`, `haidan
 - 蓝白灰简约风格
 - 移动端适配
 - 中文字体（Noto CJK）
-- **HTML → PNG 长图截图**（`./screenshot.sh`，网络隔离，可选）
 - 嵌套列表（任意层级，有序/无序混排）
 - 图片支持：本地图片内嵌 base64（离线可看），默认沙箱到 .md 同目录及子目录，绝对路径和 `../` 被拦截；远程图片渲染为链接占位（不自动发请求，保护隐私）
 - 正文自带 `# 标题` 时不再叠加文件名标题
-- screenshot.sh 自动探测浏览器（CHROME 环境变量 → macOS /Applications → puppeteer 缓存 → PATH），Linux/macOS 开箱即用
+- 截图输出由宿主环境自带工具完成（v1.3.2 起不再内置 screenshot.sh，避免浏览器自动化代码）
 - 脚注 `[^id]`：正文渲染为上标角标，可点击跳转，底部 NOTES 区汇总并支持回跳（论文/技术文档友好）
 - 分隔线 `---` / `***` / `___` 渲染为渐变样式分隔线
 - 暗色模式：跟随系统 `prefers-color-scheme`，右上角可手动切换并记住选择
