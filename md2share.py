@@ -29,6 +29,7 @@ def parse_md(md_text):
     """简单 MD 解析器：标题/段落/表格/代码块/列表/引用块"""
     lines = md_text.split('\n')
     blocks = []
+    footnotes = []
     i = 0
 
     while i < len(lines):
@@ -51,6 +52,19 @@ def parse_md(md_text):
         if m:
             level = len(m.group(1))
             blocks.append({'type': 'h', 'level': level, 'content': m.group(2).strip()})
+            i += 1
+            continue
+
+        # 分隔线
+        if re.match(r'^\s*(?:-{3,}|\*{3,}|_{3,})\s*$', line):
+            blocks.append({'type': 'hr'})
+            i += 1
+            continue
+
+        # 脚注定义 [^id]: text
+        m = re.match(r'^\s*\[\^(\w+)\]:\s*(.+)$', line)
+        if m:
+            footnotes.append({'id': m.group(1), 'text': m.group(2).strip()})
             i += 1
             continue
 
@@ -110,7 +124,7 @@ def parse_md(md_text):
             i += 1
         blocks.append({'type': 'p', 'content': ' '.join(para).strip()})
 
-    return blocks
+    return blocks, footnotes
 
 def highlight_code(code, lang):
     """单遍 tokenize 高亮：注释 → 字符串 → 关键字 → 数字，互不嵌套错乱"""
@@ -162,8 +176,13 @@ def highlight_code(code, lang):
     return ''.join(out)
 
 def render_inline(text, base_dir=None):
-    """内联处理：**bold** *italic* `code` [link](url) ![img](path)"""
+    """内联处理：**bold** *italic* `code` [link](url) ![img](path) [^fn]"""
     text = html.escape(text)
+
+    # 脚注引用 [^id] → 上标角标
+    text = re.sub(r'\[\^(\w+)\]',
+                  lambda m: f'<sup class="fn-ref" id="fnref-{m.group(1)}"><a href="#fn-{m.group(1)}">{m.group(1)}</a></sup>',
+                  text)
 
     # 图片 ![alt](url) —— 本地图片内嵌 base64（离线可看），远程图片渲染为链接占位（不自动发请求）
     def img_repl(m):
@@ -243,7 +262,7 @@ def render_list(nodes):
     parts.append(f'</{tag}>')
     return ''.join(parts)
 
-def render_html(blocks, title="md2view", base_dir=None):
+def render_html(blocks, title="md2view", base_dir=None, footnotes=None):
     """渲染 blocks 为 HTML；title 为 None 时不注入文件名标题（正文已有 h1）"""
     parts = []
     if title is not None:
@@ -258,6 +277,8 @@ def render_html(blocks, title="md2view", base_dir=None):
             parts.append(f'<p>{render_inline(b["content"], base_dir)}</p>')
         elif b['type'] == 'quote':
             parts.append(f'<blockquote>{render_inline(b["content"], base_dir)}</blockquote>')
+        elif b['type'] == 'hr':
+            parts.append('<hr class="md-hr">')
         elif b['type'] == 'list':
             parts.append(render_list(build_list_tree(b['items'])))
         elif b['type'] == 'code':
@@ -286,6 +307,17 @@ def render_html(blocks, title="md2view", base_dir=None):
                     parts.append(f'<td>{render_inline(c, base_dir)}</td>')
                 parts.append('</tr>')
             parts.append('</tbody></table></div>')
+
+    if footnotes:
+        parts.append('<section class="footnotes">')
+        parts.append('<div class="fn-title">NOTES · 注释</div>')
+        for fn in footnotes:
+            parts.append(
+                f'<div class="fn-item" id="fn-{fn["id"]}">'
+                f'<span class="fn-num">[{fn["id"]}]</span> {render_inline(fn["text"], base_dir)}'
+                f'<a class="fn-back" href="#fnref-{fn["id"]}"> ↩</a></div>'
+            )
+        parts.append('</section>')
 
     return '\n'.join(parts)
 
@@ -459,6 +491,76 @@ td {
 tr.odd { background: #FAFBFC; }
 tr.even { background: #FFFFFF; }
 tr:hover { background: #EEF2F7; }
+.md-hr {
+  border: none;
+  height: 2px;
+  background: linear-gradient(to right, transparent, var(--border) 15%, var(--accent) 50%, var(--border) 85%, transparent);
+  margin: 28px 0;
+}
+.footnotes {
+  margin-top: 32px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--border);
+}
+.fn-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-light);
+  letter-spacing: 2px;
+  margin-bottom: 8px;
+}
+.fn-item {
+  font-size: 13px;
+  color: var(--text-light);
+  margin: 6px 0;
+  line-height: 1.6;
+}
+.fn-num { color: var(--accent); font-weight: 600; }
+sup.fn-ref { font-size: 12px; }
+sup.fn-ref a { border: none; text-decoration: none; font-weight: 600; }
+.fn-back { border: none; }
+.theme-toggle {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  font-size: 16px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  z-index: 99;
+}
+/* 暗色模式：跟随系统 + 可手动切换 */
+@media (prefers-color-scheme: dark) {
+  body:not(.light) {
+    --primary: #8AB6E8; --accent: #5C9BE0;
+    --bg: #14181D; --card: #1E242B;
+    --text: #D8DEE6; --text-light: #97A2AE; --border: #39434E;
+  }
+  body:not(.light) .code-block { background: #161B21; }
+  body:not(.light) blockquote,
+  body:not(.light) code.inline,
+  body:not(.light) .img-ext { background: #232B34; }
+  body:not(.light) tr.odd { background: #23282F; }
+  body:not(.light) tr.even { background: #1E242B; }
+  body:not(.light) tr:hover { background: #2A323C; }
+}
+body.dark {
+  --primary: #8AB6E8; --accent: #5C9BE0;
+  --bg: #14181D; --card: #1E242B;
+  --text: #D8DEE6; --text-light: #97A2AE; --border: #39434E;
+}
+body.dark .code-block { background: #161B21; }
+body.dark blockquote,
+body.dark code.inline,
+body.dark .img-ext { background: #232B34; }
+body.dark tr.odd { background: #23282F; }
+body.dark tr.even { background: #1E242B; }
+body.dark tr:hover { background: #2A323C; }
 @media (max-width: 480px) {
   body { padding: 12px; }
   .container { padding: 20px 16px; }
@@ -467,6 +569,26 @@ tr:hover { background: #EEF2F7; }
 }
 """
     js = """
+// 主题切换（跟随系统 + 手动覆盖，记忆选择）
+(function () {
+  const saved = (() => { try { return localStorage.getItem('md2view-theme'); } catch (e) { return null; } })();
+  if (saved === 'dark') document.body.classList.add('dark');
+  else if (saved === 'light') document.body.classList.add('light');
+  const toggle = document.createElement('button');
+  toggle.className = 'theme-toggle';
+  const updateIcon = () => { toggle.textContent = document.body.classList.contains('dark') ? '☀️' : '🌙'; };
+  toggle.addEventListener('click', () => {
+    if (document.body.classList.contains('dark')) {
+      document.body.classList.remove('dark'); document.body.classList.add('light');
+    } else {
+      document.body.classList.remove('light'); document.body.classList.add('dark');
+    }
+    try { localStorage.setItem('md2view-theme', document.body.classList.contains('dark') ? 'dark' : 'light'); } catch (e) {}
+    updateIcon();
+  });
+  updateIcon();
+  document.body.appendChild(toggle);
+})();
 document.querySelectorAll('.copy-btn').forEach(btn => {
   btn.addEventListener('click', async () => {
     const pre = btn.closest('.code-block') && btn.closest('.code-block').querySelector('pre');
@@ -533,11 +655,11 @@ def main():
     output_path = Path(sys.argv[2]) if len(sys.argv) > 2 else md_path.with_suffix('.html')
 
     md_text = md_path.read_text(encoding='utf-8')
-    blocks = parse_md(md_text)
+    blocks, footnotes = parse_md(md_text)
     # 正文自带 h1 时不再注入文件名标题，避免双标题
     has_h1 = any(b['type'] == 'h' and b['level'] == 1 for b in blocks)
     title = None if has_h1 else md_path.stem
-    content = render_html(blocks, title=title, base_dir=md_path.parent)
+    content = render_html(blocks, title=title, base_dir=md_path.parent, footnotes=footnotes)
     html_doc = build_page(content, title=md_path.stem)
 
     output_path.write_text(html_doc, encoding='utf-8')
