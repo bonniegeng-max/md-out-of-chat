@@ -55,7 +55,7 @@ Mitigation: The renderer only allows `http:`, `https:`, and `mailto:` URL scheme
 
 ## Skill Version(s):
 
-1.1.4 (source: frontmatter and release metadata)
+1.2.0 (source: frontmatter and release metadata)
 
 ## Ethical Considerations:
 

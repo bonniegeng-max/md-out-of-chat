@@ -6,7 +6,14 @@ md2view - MD 转 HTML
 import sys
 import re
 import html
+import base64
 from pathlib import Path
+
+IMG_MIME = {
+    '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
+    '.gif': 'image/gif', '.webp': 'image/webp', '.svg': 'image/svg+xml',
+    '.bmp': 'image/bmp',
+}
 
 def split_row(line):
     """按未转义的 | 切分表格行，支持 \\| 转义"""
@@ -67,27 +74,26 @@ def parse_md(md_text):
             blocks.append({'type': 'table', 'header': header, 'rows': rows})
             continue
 
-        # 无序列表（含任务列表 - [ ] / - [x]）
-        if re.match(r'^\s*[-*]\s+', line):
+        # 列表（无序/有序/任务/嵌套，统一解析）
+        if re.match(r'^\s*(?:[-*]|\d+\.)\s+', line):
             items = []
-            while i < len(lines) and re.match(r'^\s*[-*]\s+', lines[i]):
-                raw = re.sub(r'^\s*[-*]\s+', '', lines[i])
-                tm = re.match(r'^\[( |x|X)\]\s+(.*)$', raw)
-                if tm:
-                    items.append({'text': tm.group(2), 'task': 'done' if tm.group(1).lower() == 'x' else 'todo'})
-                else:
-                    items.append({'text': raw, 'task': None})
+            list_re = re.compile(r'^(\s*)([-*]|\d+\.)\s+(.*)$')
+            while i < len(lines) and lines[i].strip():
+                m = list_re.match(lines[i])
+                if not m:
+                    break
+                indent = len(m.group(1).replace('\t', '    '))
+                ordered = not m.group(2).startswith(('-', '*'))
+                text = m.group(3).strip()
+                task = None
+                if not ordered:
+                    tm = re.match(r'^\[( |x|X)\]\s+(.*)$', text)
+                    if tm:
+                        task = 'done' if tm.group(1).lower() == 'x' else 'todo'
+                        text = tm.group(2)
+                items.append({'indent': indent, 'ordered': ordered, 'text': text, 'task': task})
                 i += 1
-            blocks.append({'type': 'ul', 'items': items})
-            continue
-
-        # 有序列表
-        if re.match(r'^\s*\d+\.\s+', line):
-            items = []
-            while i < len(lines) and re.match(r'^\s*\d+\.\s+', lines[i]):
-                items.append(re.sub(r'^\s*\d+\.\s+', '', lines[i]))
-                i += 1
-            blocks.append({'type': 'ol', 'items': items})
+            blocks.append({'type': 'list', 'items': items})
             continue
 
         # 空行
@@ -155,9 +161,30 @@ def highlight_code(code, lang):
 
     return ''.join(out)
 
-def render_inline(text):
-    """内联处理：**bold** *italic* `code` [link](url)"""
+def render_inline(text, base_dir=None):
+    """内联处理：**bold** *italic* `code` [link](url) ![img](path)"""
     text = html.escape(text)
+
+    # 图片 ![alt](url) —— 本地图片内嵌 base64（离线可看），远程图片渲染为链接占位（不自动发请求）
+    def img_repl(m):
+        alt, url = m.group(1), m.group(2)
+        if re.match(r'^(https?:)', url, re.I):
+            label = alt or url
+            return (f'<span class="img-ext">🖼 <a href="{url}" target="_blank" '
+                    f'rel="noopener">{label}</a></span>')
+        if base_dir:
+            p = Path(url)
+            if not p.is_absolute():
+                p = base_dir / p
+            try:
+                if p.exists() and p.suffix.lower() in IMG_MIME:
+                    data = base64.b64encode(p.read_bytes()).decode()
+                    return (f'<img class="md-img" src="data:{IMG_MIME[p.suffix.lower()]};'
+                            f'base64,{data}" alt="{alt}">')
+            except OSError:
+                pass
+        return m.group(0)
+    text = re.sub(r'!\[([^\]]*)\]\(([^)\s]+)\)', img_repl, text)
 
     # 链接 [text](url) —— 只放行安全协议
     def link_repl(m):
@@ -172,35 +199,67 @@ def render_inline(text):
     text = re.sub(r'`([^`]+)`', r'<code class="inline">\1</code>', text)
     return text
 
-def render_html(blocks, title="md2view"):
-    """渲染 blocks 为 HTML"""
+def build_list_tree(items):
+    """把缩进的扁平列表项组成树"""
+    def parse(idx, indent):
+        nodes = []
+        while idx < len(items) and items[idx]['indent'] >= indent:
+            it = items[idx]
+            if it['indent'] == indent:
+                idx += 1
+                children = []
+                if idx < len(items) and items[idx]['indent'] > indent:
+                    children, idx = parse(idx, items[idx]['indent'])
+                nodes.append({**it, 'children': children})
+            else:
+                # 比当前层级更深且没有同层节点兜着，挂到上一个节点下
+                sub, idx = parse(idx, items[idx]['indent'])
+                if nodes:
+                    nodes[-1]['children'].extend(sub)
+                else:
+                    nodes.extend(sub)
+        return nodes, idx
+    if not items:
+        return []
+    tree, _ = parse(0, items[0]['indent'])
+    return tree
+
+def render_list(nodes):
+    """递归渲染嵌套列表"""
+    if not nodes:
+        return ''
+    tag = 'ol' if nodes[0]['ordered'] else 'ul'
+    parts = [f'<{tag}>']
+    for n in nodes:
+        if n.get('task'):
+            cls = 'task-done' if n['task'] == 'done' else 'task-todo'
+            box = '☑' if n['task'] == 'done' else '☐'
+            parts.append(f'<li class="{cls}"><span class="cbx">{box}</span> {render_inline(n["text"])}')
+        else:
+            parts.append(f'<li>{render_inline(n["text"])}')
+        if n['children']:
+            parts.append(render_list(n['children']))
+        parts.append('</li>')
+    parts.append(f'</{tag}>')
+    return ''.join(parts)
+
+def render_html(blocks, title="md2view", base_dir=None):
+    """渲染 blocks 为 HTML；title 为 None 时不注入文件名标题（正文已有 h1）"""
     parts = []
-    parts.append(f'<h1 class="title">{html.escape(title)}</h1>')
+    if title is not None:
+        parts.append(f'<h1 class="title">{html.escape(title)}</h1>')
 
     for b in blocks:
         if b['type'] == 'h':
             lvl = b['level']
             tag = f'h{lvl}'
-            parts.append(f'<{tag} class="{tag}">{render_inline(b["content"])}</{tag}>')
+            parts.append(f'<{tag} class="{tag}">{render_inline(b["content"], base_dir)}</{tag}>')
         elif b['type'] == 'p':
-            parts.append(f'<p>{render_inline(b["content"])}</p>')
+            parts.append(f'<p>{render_inline(b["content"], base_dir)}</p>')
         elif b['type'] == 'quote':
-            parts.append(f'<blockquote>{render_inline(b["content"])}</blockquote>')
-        elif b['type'] == 'ul':
-            parts.append('<ul>')
-            for item in b['items']:
-                if item.get('task'):
-                    cls = 'task-done' if item['task'] == 'done' else 'task-todo'
-                    box = '☑' if item['task'] == 'done' else '☐'
-                    parts.append(f'<li class="{cls}"><span class="cbx">{box}</span> {render_inline(item["text"])}</li>')
-                else:
-                    parts.append(f'<li>{render_inline(item["text"])}</li>')
-            parts.append('</ul>')
-        elif b['type'] == 'ol':
-            parts.append('<ol>')
-            for item in b['items']:
-                parts.append(f'<li>{render_inline(item)}</li>')
-            parts.append('</ol>')
+            parts.append(f'<blockquote>{render_inline(b["content"], base_dir)}</blockquote>')
+        elif b['type'] == 'list':
+            parts.append(render_list(build_list_tree(b['items'])))
         elif b['type'] == 'code':
             code_html = highlight_code(b['content'], b['lang'])
             lang_label = b['lang'].upper() if b['lang'] else 'TEXT'
@@ -217,14 +276,14 @@ def render_html(blocks, title="md2view"):
             parts.append('<div class="table-wrap"><table>')
             parts.append('<thead><tr>')
             for h in b['header']:
-                parts.append(f'<th>{render_inline(h)}</th>')
+                parts.append(f'<th>{render_inline(h, base_dir)}</th>')
             parts.append('</tr></thead>')
             parts.append('<tbody>')
             for ri, row in enumerate(b['rows']):
                 cls = 'odd' if ri % 2 else 'even'
                 parts.append(f'<tr class="{cls}">')
                 for c in row:
-                    parts.append(f'<td>{render_inline(c)}</td>')
+                    parts.append(f'<td>{render_inline(c, base_dir)}</td>')
                 parts.append('</tr>')
             parts.append('</tbody></table></div>')
 
@@ -298,7 +357,22 @@ blockquote {
 ul, ol {
   margin: 12px 0 12px 24px;
 }
+ul ul, ul ol, ol ul, ol ol { margin: 6px 0 6px 20px; }
 li { margin: 6px 0; }
+.md-img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 8px 0;
+  border: 1px solid var(--border);
+}
+.img-ext {
+  display: inline-block;
+  background: #EEF2F7;
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 14px;
+}
 li.task-done, li.task-todo { list-style: none; margin-left: -20px; }
 li.task-done { color: var(--text-light); text-decoration: line-through; }
 li.task-done .cbx { text-decoration: none; }
@@ -460,7 +534,10 @@ def main():
 
     md_text = md_path.read_text(encoding='utf-8')
     blocks = parse_md(md_text)
-    content = render_html(blocks, title=md_path.stem)
+    # 正文自带 h1 时不再注入文件名标题，避免双标题
+    has_h1 = any(b['type'] == 'h' and b['level'] == 1 for b in blocks)
+    title = None if has_h1 else md_path.stem
+    content = render_html(blocks, title=title, base_dir=md_path.parent)
     html_doc = build_page(content, title=md_path.stem)
 
     output_path.write_text(html_doc, encoding='utf-8')

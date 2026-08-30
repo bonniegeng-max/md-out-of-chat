@@ -1,7 +1,7 @@
 ---
 name: md-out-of-chat
 description: Convert a Markdown file into a mobile-friendly local HTML page or phone-sized screenshot. Safe default is local-only; a public web URL is only produced when the user explicitly asks for it or the host platform deploy tool is used. Respond in the user's current language.
-version: 1.1.4
+version: 1.2.0
 homepage: https://github.com/bonniegeng-max/md-out-of-chat
 license: MIT
 metadata: {"clawdbot":{"emoji":"📄","requires":{"bins":["python3"],"packages":[],"env":[]}}}
@@ -157,6 +157,7 @@ python3 md2share.py my-notes.md
 
 ## Limitations
 
-- Simple MD parser (no nested lists, no footnotes, no images yet)
+- MD parser supports nested lists (any depth, mixed ordered/unordered) and images (local files embedded as base64, remote images rendered as a link placeholder so no network request is made)
+- No footnotes yet
 - Code highlighter covers python / javascript / bash / sql out of the box; other languages render as plain text with a label
 - Highlighter is regex-based (single-pass tokenize: comment → string → keyword → number, no nesting bugs)

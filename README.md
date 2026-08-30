@@ -180,11 +180,14 @@ There are other "md to html" skills (`awesome-copilot/markdown-to-html`, `haidan
 - 移动端适配
 - 中文字体（Noto CJK）
 - **HTML → PNG 长图截图**（`./screenshot.sh`，网络隔离，可选）
+- 嵌套列表（任意层级，有序/无序混排）
+- 图片支持：本地图片内嵌 base64（离线可看），远程图片渲染为链接占位（不自动发请求，保护隐私）
+- 正文自带 `# 标题` 时不再叠加文件名标题
+- screenshot.sh 自动探测浏览器（CHROME 环境变量 → macOS /Applications → puppeteer 缓存 → PATH），Linux/macOS 开箱即用
 
 🟡 Coming next:
-- 嵌套列表
-- 图片 `![alt](url)`
 - footnotes
+- 暗色模式
 
 ---
 
