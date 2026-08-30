@@ -7,6 +7,7 @@ import sys
 import re
 import html
 import base64
+import os
 from pathlib import Path
 
 IMG_MIME = {
@@ -14,6 +15,9 @@ IMG_MIME = {
     '.gif': 'image/gif', '.webp': 'image/webp', '.svg': 'image/svg+xml',
     '.bmp': 'image/bmp',
 }
+
+# 本地图片内嵌策略：'auto' 只允许 .md 同目录及子目录；'all' 显式放开限制
+EMBED_LOCAL_IMAGES = 'auto'
 
 def split_row(line):
     """按未转义的 | 切分表格行，支持 \\| 转义"""
@@ -175,6 +179,33 @@ def highlight_code(code, lang):
 
     return ''.join(out)
 
+def resolve_image_path(url, base_dir):
+    """解析图片路径；返回 (absolute_path, allowed)。
+
+    - 远程图片：返回 (None, False)
+    - 本地绝对路径：仅在 EMBED_LOCAL_IMAGES == 'all' 时 allowed=True
+    - 本地相对路径：resolve 后，auto 模式下只允许 .md 同目录及子目录
+    - 不存在或格式不支持：返回 (resolved_path, False)
+    """
+    if re.match(r'^(https?:)', url, re.I):
+        return None, False
+    if not base_dir:
+        return None, False
+    try:
+        p = Path(url)
+        base_resolved = base_dir.resolve()
+        if p.is_absolute():
+            resolved = p.resolve()
+            return resolved, EMBED_LOCAL_IMAGES == 'all'
+        resolved = (base_resolved / p).resolve()
+        if EMBED_LOCAL_IMAGES == 'all':
+            return resolved, True
+        return resolved, resolved.is_relative_to(base_resolved)
+    except (OSError, ValueError):
+        pass
+    return None, False
+
+
 def render_inline(text, base_dir=None):
     """内联处理：**bold** *italic* `code` [link](url) ![img](path) [^fn]"""
     text = html.escape(text)
@@ -187,21 +218,16 @@ def render_inline(text, base_dir=None):
     # 图片 ![alt](url) —— 本地图片内嵌 base64（离线可看），远程图片渲染为链接占位（不自动发请求）
     def img_repl(m):
         alt, url = m.group(1), m.group(2)
-        if re.match(r'^(https?:)', url, re.I):
+        resolved, allowed = resolve_image_path(url, base_dir)
+        if resolved is None:
             label = alt or url
             return (f'<span class="img-ext">🖼 <a href="{url}" target="_blank" '
                     f'rel="noopener">{label}</a></span>')
-        if base_dir:
-            p = Path(url)
-            if not p.is_absolute():
-                p = base_dir / p
-            try:
-                if p.exists() and p.suffix.lower() in IMG_MIME:
-                    data = base64.b64encode(p.read_bytes()).decode()
-                    return (f'<img class="md-img" src="data:{IMG_MIME[p.suffix.lower()]};'
-                            f'base64,{data}" alt="{alt}">')
-            except OSError:
-                pass
+        if allowed and resolved.exists() and resolved.suffix.lower() in IMG_MIME:
+            data = base64.b64encode(resolved.read_bytes()).decode()
+            return (f'<img class="md-img" src="data:{IMG_MIME[resolved.suffix.lower()]};'
+                    f'base64,{data}" alt="{alt}">')
+        # 不可访问或越界的本地图片保持原样，避免静默吞掉
         return m.group(0)
     text = re.sub(r'!\[([^\]]*)\]\(([^)\s]+)\)', img_repl, text)
 
@@ -243,7 +269,7 @@ def build_list_tree(items):
     tree, _ = parse(0, items[0]['indent'])
     return tree
 
-def render_list(nodes):
+def render_list(nodes, base_dir=None):
     """递归渲染嵌套列表"""
     if not nodes:
         return ''
@@ -253,11 +279,11 @@ def render_list(nodes):
         if n.get('task'):
             cls = 'task-done' if n['task'] == 'done' else 'task-todo'
             box = '☑' if n['task'] == 'done' else '☐'
-            parts.append(f'<li class="{cls}"><span class="cbx">{box}</span> {render_inline(n["text"])}')
+            parts.append(f'<li class="{cls}"><span class="cbx">{box}</span> {render_inline(n["text"], base_dir)}')
         else:
-            parts.append(f'<li>{render_inline(n["text"])}')
+            parts.append(f'<li>{render_inline(n["text"], base_dir)}')
         if n['children']:
-            parts.append(render_list(n['children']))
+            parts.append(render_list(n['children'], base_dir))
         parts.append('</li>')
     parts.append(f'</{tag}>')
     return ''.join(parts)
@@ -280,7 +306,7 @@ def render_html(blocks, title="md2view", base_dir=None, footnotes=None):
         elif b['type'] == 'hr':
             parts.append('<hr class="md-hr">')
         elif b['type'] == 'list':
-            parts.append(render_list(build_list_tree(b['items'])))
+            parts.append(render_list(build_list_tree(b['items']), base_dir))
         elif b['type'] == 'code':
             code_html = highlight_code(b['content'], b['lang'])
             lang_label = b['lang'].upper() if b['lang'] else 'TEXT'
@@ -642,24 +668,56 @@ document.querySelectorAll('.copy-btn').forEach(btn => {
         "</html>\n"
     )
 
+def parse_cli(argv):
+    """解析命令行参数。格式: md2share.py <md> [output] [--embed-local-images=auto|all]"""
+    global EMBED_LOCAL_IMAGES
+    positional = []
+    i = 0
+    while i < len(argv):
+        a = argv[i]
+        if a == '--embed-local-images' or a.startswith('--embed-local-images='):
+            if '=' in a:
+                val = a.split('=', 1)[1]
+            elif i + 1 < len(argv):
+                i += 1
+                val = argv[i]
+            else:
+                print("用法: python md2share.py <md文件> [输出html] [--embed-local-images=auto|all]")
+                sys.exit(1)
+            if val not in ('auto', 'all'):
+                print("用法: python md2share.py <md文件> [输出html] [--embed-local-images=auto|all]")
+                sys.exit(1)
+            EMBED_LOCAL_IMAGES = val
+        elif a.startswith('-'):
+            print(f"未知选项: {a}")
+            print("用法: python md2share.py <md文件> [输出html] [--embed-local-images=auto|all]")
+            sys.exit(1)
+        else:
+            positional.append(a)
+        i += 1
+    return positional
+
+
 def main():
-    if len(sys.argv) < 2:
-        print("用法: python md2share.py <md文件> [输出html]")
+    positional = parse_cli(sys.argv[1:])
+    if len(positional) < 1:
+        print("用法: python md2share.py <md文件> [输出html] [--embed-local-images=auto|all]")
         sys.exit(1)
 
-    md_path = Path(sys.argv[1])
+    md_path = Path(positional[0])
     if not md_path.exists():
         print(f"找不到: {md_path}")
         sys.exit(1)
 
-    output_path = Path(sys.argv[2]) if len(sys.argv) > 2 else md_path.with_suffix('.html')
+    output_path = Path(positional[1]) if len(positional) > 1 else md_path.with_suffix('.html')
 
     md_text = md_path.read_text(encoding='utf-8')
     blocks, footnotes = parse_md(md_text)
     # 正文自带 h1 时不再注入文件名标题，避免双标题
     has_h1 = any(b['type'] == 'h' and b['level'] == 1 for b in blocks)
     title = None if has_h1 else md_path.stem
-    content = render_html(blocks, title=title, base_dir=md_path.parent, footnotes=footnotes)
+    content = render_html(blocks, title=title, base_dir=md_path.parent,
+                          footnotes=footnotes)
     html_doc = build_page(content, title=md_path.stem)
 
     output_path.write_text(html_doc, encoding='utf-8')

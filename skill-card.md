@@ -38,6 +38,10 @@ Risk: Markdown links are rendered as `<a>` tags.
 
 Mitigation: The renderer only allows `http:`, `https:`, and `mailto:` URL schemes; `javascript:` and other unsafe schemes are left as plain text to reduce XSS risk.
 
+Risk: Local images (`![alt](./image.png)`) are read from the filesystem and embedded as base64.
+
+Mitigation: By default, only image files located in the same directory as the input Markdown file or a subdirectory of it are embedded. Absolute paths and parent-directory traversal (`../`) are blocked unless the user explicitly passes `--embed-local-images=all`. Remote images are never fetched automatically and are rendered as a link placeholder.
+
 ## Reference(s):
 
 - [GitHub Repository](https://github.com/bonniegeng-max/md-out-of-chat)
@@ -55,7 +59,7 @@ Mitigation: The renderer only allows `http:`, `https:`, and `mailto:` URL scheme
 
 ## Skill Version(s):
 
-1.3.0 (source: frontmatter and release metadata)
+1.3.1 (source: frontmatter and release metadata)
 
 ## Ethical Considerations:
 

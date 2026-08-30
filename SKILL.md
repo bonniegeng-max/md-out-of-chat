@@ -1,7 +1,7 @@
 ---
 name: md-out-of-chat
 description: Convert a Markdown file into a mobile-friendly local HTML page or phone-sized screenshot. Safe default is local-only; a public web URL is only produced when the user explicitly asks for it or the host platform deploy tool is used. Respond in the user's current language.
-version: 1.3.0
+version: 1.3.1
 homepage: https://github.com/bonniegeng-max/md-out-of-chat
 license: MIT
 metadata: {"clawdbot":{"emoji":"📄","requires":{"bins":["python3"],"packages":[],"env":[]}}}
@@ -131,6 +131,8 @@ Never generate a public URL silently. If deployment is not available, fall back 
 - `build_and_deploy.sh` only prepares a local `dist/` folder; it does not upload anything.
 - `screenshot.sh` renders the local HTML with network requests blocked, so no remote resources are fetched.
 - A public URL is produced **only** when the user explicitly requests it and the assistant has a trusted deploy tool.
+- **Local images** (`![alt](./image.png)`) are embedded as base64 by default, but **only** if they live in the same directory as the Markdown file or a subdirectory of it. Absolute paths and parent-directory traversal (`../`) are blocked unless the user explicitly passes `--embed-local-images=all`.
+- **Remote images** are never fetched automatically; they are rendered as a link placeholder to avoid network requests.
 - The user does not need to register any account.
 - This skill **never** sends user content to external APIs without explicit consent.
 
@@ -138,13 +140,16 @@ Never generate a public URL silently. If deployment is not available, fall back 
 
 ```bash
 # 1. Write or place your .md file
-# 2. Generate a local HTML file
+# 2. Generate a local HTML file (default: local images under .md dir are embedded)
 python3 md2share.py my-notes.md
 
-# 3. (Optional) Build dist/ for deployment
+# 3. (Optional) Allow embedding local images from absolute paths or outside the .md directory
+python3 md2share.py my-notes.md --embed-local-images=all
+
+# 4. (Optional) Build dist/ for deployment
 ./build_and_deploy.sh my-notes.md
 
-# 4. (Optional) Generate a phone-sized screenshot
+# 5. (Optional) Generate a phone-sized screenshot
 ./screenshot.sh my-notes.html my-notes.png
 ```
 
@@ -157,7 +162,7 @@ python3 md2share.py my-notes.md
 
 ## Limitations
 
-- MD parser supports nested lists (any depth, mixed ordered/unordered) and images (local files embedded as base64, remote images rendered as a link placeholder so no network request is made)
+- MD parser supports nested lists (any depth, mixed ordered/unordered) and images (local files embedded as base64, remote images rendered as a link placeholder so no network request is made; local image embedding is sandboxed to the Markdown file's directory and its subdirectories by default)
 - Footnotes: `[^id]` refs render as superscript anchors, definitions collected into a NOTES section at the bottom with back-links
 - Horizontal rules (`---`, `***`, `___`) render as styled dividers
 - Dark mode: follows `prefers-color-scheme` with a manual toggle that remembers the choice
