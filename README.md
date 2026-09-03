@@ -1,5 +1,7 @@
 # md-out-of-chat
 
+> **一句话定位**：纯本地、零依赖的 Markdown 转换器——把一个 `.md` 变成手机浏览器能直接打开、能直接发出去阅读的网页 / 长图；内容全程不离开你的电脑，无需 API Key、云账号或任何外部服务。
+
 > **Pulling Markdown out of chat, into something people can actually read.**
 > **把 Markdown 从聊天里拿出来，变成人能直接看的东西。**
 
@@ -66,6 +68,10 @@ Try it on a sample file: see `demo.md` for the input.
 | Table | `\| col \| col \|` | Zebra-striped, mobile-friendly |
 | Code | ` ```python ` | Dark header with language label, one-tap copy button |
 | List | `- item` | Bulleted with proper spacing |
+
+> **语法高亮支持范围（如实标注）**：`md2share.py` 的词法高亮只内置 **4 种语言**——`python` / `javascript` / `bash` / `sql`（含关键字 + 注释着色）；代码块请用这 4 个规范名标注语言。其它语言（如 `js`、`py`、`sh`、`c++`）**不会高亮**：仍显示大写语言标签 + 一键复制按钮，但内容退化为纯文本渲染（仅字符串/数字做简单着色，无关键字与注释高亮）。这是当前实现的行为，未做任何代码改动。
+
+> **如何替换成你自己的案例**：把仓库根目录的 `demo.md` 换成你自己的 Markdown，`python3 md2share.py 你的文件.md` 生成 HTML 后（用宿主截图工具）另存为同名 `demo.png`；文件名保持不变，上面这些引用就会自动指向你的产物。
 
 ---
 
