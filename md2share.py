@@ -183,8 +183,9 @@ def resolve_image_path(url, base_dir):
     """解析图片路径；返回 (absolute_path, allowed)。
 
     - 远程图片：返回 (None, False)
-    - 本地绝对路径：仅在 EMBED_LOCAL_IMAGES == 'all' 时 allowed=True
-    - 本地相对路径：resolve 后，auto 模式下只允许 .md 同目录及子目录
+    - 本地绝对路径：一律拒绝（absolute paths are never embedded）
+    - 本地相对路径：resolve 后，auto 模式下只允许 .md 同目录及子目录；
+      all 模式放开相对路径遍历（含 ../），但仍是相对解析
     - 不存在或格式不支持：返回 (resolved_path, False)
     """
     if re.match(r'^(https?:)', url, re.I):
@@ -195,8 +196,8 @@ def resolve_image_path(url, base_dir):
         p = Path(url)
         base_resolved = base_dir.resolve()
         if p.is_absolute():
-            resolved = p.resolve()
-            return resolved, EMBED_LOCAL_IMAGES == 'all'
+            # 绝对路径永不内嵌：防止把任意位置的本地文件打包进输出 HTML
+            return p.resolve(), False
         resolved = (base_resolved / p).resolve()
         if EMBED_LOCAL_IMAGES == 'all':
             return resolved, True
@@ -225,6 +226,8 @@ def render_inline(text, base_dir=None):
                     f'rel="noopener">{label}</a></span>')
         if allowed and resolved.exists() and resolved.suffix.lower() in IMG_MIME:
             data = base64.b64encode(resolved.read_bytes()).decode()
+            # 透明度：把每个实际内嵌的本地文件路径打到 stderr
+            print(f"[md2share] embedded local image: {resolved}", file=sys.stderr)
             return (f'<img class="md-img" src="data:{IMG_MIME[resolved.suffix.lower()]};'
                     f'base64,{data}" alt="{alt}">')
         # 不可访问或越界的本地图片保持原样，避免静默吞掉

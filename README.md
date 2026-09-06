@@ -39,10 +39,8 @@ Run the file through this skill. It produces:
 把文件过一遍这个 skill，你得到：
 
 - **A local HTML file** — opens in any mobile browser, with proper tables, code blocks with language labels and **one-tap copy**
-- **Or a long screenshot** — when you explicitly ask for an image, or want to share as-is
 
 - **一个本地 HTML 文件** — 任何手机浏览器都能打开，表格对齐、代码带语言标签 + **一键复制**
-- **或一张长图截图** — 当你明确要图片，或想"原样分享"
 
 A public web URL is only generated when you explicitly ask for it and your agent has a trusted deploy tool.
 
@@ -55,7 +53,7 @@ Try it on a sample file: see `demo.md` for the input.
 - **Live web demo**: [Click to view](https://2uf0a7axwwwr.space.minimaxi.com) (h1/h2 headings, code blocks with language labels, copy buttons, mobile-friendly tables)
 - **Long screenshot**: see `demo.png` in this repo (a 750×2750 phone-shaped snapshot, Chinese + English fully rendered)
 
-| Element | Input (Markdown) | Output (HTML + Screenshot) |
+| Element | Input (Markdown) | Output (HTML) |
 |---------|------------------|----------------------------|
 | Heading | `# Title` | Blue title with bottom border |
 | Table | `\| col \| col \|` | Zebra-striped, mobile-friendly |
@@ -88,9 +86,9 @@ The agent decides the right output based on your explicit request:
 | 场景 · Scenario | 输出 · Output |
 |-----------------|---------------|
 | 没有特别说明 · No specific output requested | 本地 HTML · Local HTML file |
-| "截图/图片" · "screenshot/image" | 截图 · Screenshot |
-| "公开链接/URL" 且有部署工具 · "public link/URL" with deploy tool | Web URL |
-| "发给朋友" · "send to friend" | 先问用户要截图还是链接 · Ask user: screenshot or link |
+| "截图/图片" · "screenshot/image" | 本 skill 不生成图片：HTML 已生成，转 PNG 由宿主自带工具完成 · No PNG output: HTML is ready, PNG rendering is up to the host's own tools |
+| "公开链接/URL" 且有部署工具 · "public link/URL" with deploy tool | Web URL（需用户明确确认 · requires explicit confirmation） |
+| "发给朋友" · "send to friend" | 生成 HTML 文件后由用户转发 · Generate HTML, then forward the file |
 
 The default is always local-first. A public URL is never generated silently.
 
@@ -161,16 +159,16 @@ There are other "md to html" skills (`awesome-copilot/markdown-to-html`, `haidan
 ## Privacy · 隐私
 
 - **Local by default** — `md2share.py` only produces a `.html` file. Nothing leaves your machine unless you explicitly ask for a public URL.
-- **No browser automation shipped** — screenshots, if you need one, are rendered by your own browser/screenshot tool; the skill contains no Puppeteer/Chrome code.
-- **Web deploy is opt-in** — only when you explicitly request it and your agent has a trusted deploy tool.
-- **Sandboxed local images** — local images are embedded as base64 only when they live in the same directory as the `.md` file or a subdirectory of it. Absolute paths and `../` traversal are blocked unless you pass `--embed-local-images=all`.
+- **No browser automation shipped** — the skill generates HTML only and contains no Puppeteer/Chrome code; no PNG output.
+- **Web deploy is opt-in** — only when you explicitly request it, explicitly confirm, and your agent has a trusted deploy tool.
+- **Sandboxed local images** — local images are embedded as base64 only when they live in the same directory as the `.md` file or a subdirectory of it. **Absolute paths are never embedded.** With `--embed-local-images=all`, relative paths may traverse outside the `.md` directory (`../`), and every embedded file path is logged to stderr for auditing.
 - **Remote images never auto-fetch** — they render as a link placeholder, so no network request is made.
 - **No telemetry** — the script does not phone home.
 
 - **默认本地跑** — `md2share.py` 只生成 `.html` 文件，**数据不出你电脑**
-- **不内置浏览器自动化** — 需要截图时用你自己的浏览器/截图工具渲染，skill 内不含 Puppeteer/Chrome 代码
-- **公开链接需明确授权** — 只有在你明确要求、且有可信部署工具时才生成
-- **本地图片沙箱** — 只有与 `.md` 同目录或其子目录下的图片才会内嵌为 base64；绝对路径和 `../` 会被拦截，除非显式加 `--embed-local-images=all`
+- **不内置浏览器自动化** — skill 只生成 HTML，不含 Puppeteer/Chrome 代码，不输出 PNG
+- **公开链接需明确授权** — 只有在你明确要求、明确确认、且有可信部署工具时才生成
+- **本地图片沙箱** — 只有与 `.md` 同目录或其子目录下的图片才会内嵌为 base64；**绝对路径一律不内嵌**；`--embed-local-images=all` 只放开相对路径遍历（如 `../`），且每个内嵌路径都会打到 stderr 供审计
 - **远程图片不自动下载** — 只渲染为链接占位，不会发起网络请求
 - **无任何统计上报**
 
@@ -189,7 +187,7 @@ There are other "md to html" skills (`awesome-copilot/markdown-to-html`, `haidan
 - 移动端适配
 - 中文字体（Noto CJK）
 - 嵌套列表（任意层级，有序/无序混排）
-- 图片支持：本地图片内嵌 base64（离线可看），默认沙箱到 .md 同目录及子目录，绝对路径和 `../` 被拦截；远程图片渲染为链接占位（不自动发请求，保护隐私）
+- 图片支持：本地图片内嵌 base64（离线可看），默认沙箱到 .md 同目录及子目录，绝对路径一律不内嵌；`--embed-local-images=all` 放开相对路径遍历并打印内嵌路径；远程图片渲染为链接占位（不自动发请求，保护隐私）
 - 正文自带 `# 标题` 时不再叠加文件名标题
 - 截图输出由宿主环境自带工具完成（v1.3.2 起不再内置 screenshot.sh，避免浏览器自动化代码）
 - 脚注 `[^id]`：正文渲染为上标角标，可点击跳转，底部 NOTES 区汇总并支持回跳（论文/技术文档友好）
