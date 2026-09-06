@@ -130,22 +130,52 @@ def parse_md(md_text):
 
     return blocks, footnotes
 
+LANG_ALIASES = {
+    'py': 'python', 'js': 'javascript', 'ts': 'typescript',
+    'sh': 'bash', 'shell': 'bash', 'zsh': 'bash',
+    'c++': 'cpp', 'cc': 'cpp', 'cxx': 'cpp',
+    'golang': 'go', 'rs': 'rust', 'yml': 'yaml', 'kt': 'kotlin', 'rb': 'ruby',
+}
+
 def highlight_code(code, lang):
     """单遍 tokenize 高亮：注释 → 字符串 → 关键字 → 数字，互不嵌套错乱"""
-    lang_l = lang.lower()
+    lang_l = LANG_ALIASES.get((lang or '').lower(), (lang or '').lower())
 
     keywords_map = {
         'python': ['def', 'class', 'import', 'from', 'return', 'if', 'else', 'elif', 'for', 'while', 'in', 'is', 'not', 'and', 'or', 'try', 'except', 'finally', 'with', 'as', 'lambda', 'pass', 'break', 'continue', 'yield', 'async', 'await', 'True', 'False', 'None', 'self'],
         'javascript': ['function', 'const', 'let', 'var', 'return', 'if', 'else', 'for', 'while', 'do', 'switch', 'case', 'break', 'continue', 'class', 'extends', 'new', 'this', 'super', 'import', 'export', 'from', 'async', 'await', 'try', 'catch', 'finally', 'throw', 'typeof', 'instanceof', 'true', 'false', 'null', 'undefined'],
+        'typescript': ['function', 'const', 'let', 'var', 'return', 'if', 'else', 'for', 'while', 'do', 'switch', 'case', 'break', 'continue', 'class', 'extends', 'implements', 'interface', 'type', 'enum', 'namespace', 'readonly', 'public', 'private', 'protected', 'new', 'this', 'super', 'import', 'export', 'from', 'async', 'await', 'try', 'catch', 'finally', 'throw', 'typeof', 'instanceof', 'keyof', 'true', 'false', 'null', 'undefined'],
         'bash': ['if', 'then', 'fi', 'else', 'elif', 'for', 'while', 'do', 'done', 'case', 'esac', 'function', 'return', 'echo', 'export', 'local'],
         'sql': ['SELECT', 'FROM', 'WHERE', 'JOIN', 'INNER', 'LEFT', 'RIGHT', 'ON', 'GROUP', 'BY', 'ORDER', 'HAVING', 'LIMIT', 'INSERT', 'INTO', 'VALUES', 'UPDATE', 'SET', 'DELETE', 'CREATE', 'TABLE', 'DROP', 'ALTER', 'AS', 'AND', 'OR', 'NOT', 'NULL', 'IS'],
+        'java': ['public', 'private', 'protected', 'class', 'interface', 'extends', 'implements', 'static', 'final', 'void', 'new', 'return', 'if', 'else', 'for', 'while', 'do', 'switch', 'case', 'break', 'continue', 'try', 'catch', 'finally', 'throw', 'throws', 'import', 'package', 'boolean', 'int', 'long', 'double', 'float', 'char', 'byte', 'short', 'null', 'true', 'false', 'this', 'super', 'abstract', 'synchronized', 'instanceof', 'enum'],
+        'c': ['int', 'char', 'float', 'double', 'void', 'long', 'short', 'unsigned', 'signed', 'struct', 'union', 'enum', 'typedef', 'static', 'const', 'return', 'if', 'else', 'for', 'while', 'do', 'switch', 'case', 'break', 'continue', 'sizeof', 'goto', 'extern', 'register', 'volatile', 'NULL'],
+        'cpp': ['int', 'char', 'float', 'double', 'void', 'long', 'short', 'unsigned', 'signed', 'struct', 'union', 'enum', 'typedef', 'static', 'const', 'return', 'if', 'else', 'for', 'while', 'do', 'switch', 'case', 'break', 'continue', 'sizeof', 'class', 'public', 'private', 'protected', 'virtual', 'namespace', 'using', 'template', 'typename', 'new', 'delete', 'this', 'bool', 'true', 'false', 'nullptr', 'override', 'try', 'catch', 'throw'],
+        'go': ['package', 'import', 'func', 'var', 'const', 'type', 'struct', 'interface', 'map', 'chan', 'go', 'defer', 'if', 'else', 'for', 'range', 'switch', 'case', 'default', 'return', 'break', 'continue', 'nil', 'true', 'false', 'string', 'int', 'int64', 'float64', 'bool', 'byte', 'rune', 'error', 'select', 'fallthrough'],
+        'rust': ['fn', 'let', 'mut', 'const', 'static', 'struct', 'enum', 'impl', 'trait', 'use', 'pub', 'mod', 'match', 'if', 'else', 'loop', 'while', 'for', 'in', 'return', 'break', 'continue', 'self', 'Self', 'Some', 'None', 'Ok', 'Err', 'where', 'as', 'dyn', 'async', 'await', 'unsafe', 'move', 'ref', 'true', 'false'],
+        'php': ['function', 'class', 'public', 'private', 'protected', 'static', 'echo', 'print', 'return', 'if', 'else', 'elseif', 'foreach', 'for', 'while', 'do', 'switch', 'case', 'break', 'continue', 'new', 'extends', 'implements', 'interface', 'trait', 'namespace', 'use', 'const', 'true', 'false', 'null', 'try', 'catch', 'finally', 'throw', 'instanceof', 'global', 'array'],
+        'ruby': ['def', 'end', 'class', 'module', 'if', 'elsif', 'else', 'unless', 'while', 'until', 'for', 'do', 'then', 'require', 'require_relative', 'attr_accessor', 'attr_reader', 'attr_writer', 'nil', 'true', 'false', 'self', 'puts', 'print', 'lambda', 'proc', 'yield', 'rescue', 'ensure', 'begin', 'return', 'break', 'continue', 'case', 'when', 'raise', 'new'],
+        'kotlin': ['fun', 'val', 'var', 'class', 'object', 'interface', 'data', 'sealed', 'when', 'if', 'else', 'for', 'while', 'return', 'break', 'continue', 'null', 'true', 'false', 'is', 'in', 'as', 'companion', 'override', 'open', 'abstract', 'lateinit', 'init', 'suspend', 'import', 'package', 'private', 'public', 'internal', 'protected', 'this', 'super'],
+        'swift': ['func', 'let', 'var', 'class', 'struct', 'enum', 'protocol', 'extension', 'if', 'else', 'guard', 'for', 'while', 'repeat', 'switch', 'case', 'default', 'return', 'break', 'continue', 'in', 'nil', 'true', 'false', 'self', 'Self', 'init', 'deinit', 'import', 'as', 'is', 'throws', 'rethrows', 'try', 'catch', 'async', 'await', 'some', 'any', 'where', 'static', 'public', 'private', 'internal', 'override', 'final'],
+        'json': ['true', 'false', 'null'],
+        'yaml': ['true', 'false', 'null', 'yes', 'no', 'on', 'off'],
+        'css': ['important', 'media', 'supports', 'keyframes', 'import', 'font-face', 'root'],
     }
 
     comment_pat = {
         'python': r'#[^\n]*',
         'bash': r'#[^\n]*',
+        'yaml': r'#[^\n]*',
+        'ruby': r'#[^\n]*',
         'javascript': r'//[^\n]*|/\*[\s\S]*?\*/',
+        'typescript': r'//[^\n]*|/\*[\s\S]*?\*/',
+        'java': r'//[^\n]*|/\*[\s\S]*?\*/',
+        'c': r'//[^\n]*|/\*[\s\S]*?\*/',
+        'cpp': r'//[^\n]*|/\*[\s\S]*?\*/',
+        'go': r'//[^\n]*|/\*[\s\S]*?\*/',
+        'rust': r'//[^\n]*|/\*[\s\S]*?\*/',
+        'php': r'//[^\n]*|#[^\n]*|/\*[\s\S]*?\*/',
         'sql': r'--[^\n]*',
+        'css': r'/\*[\s\S]*?\*/',
     }.get(lang_l)
 
     keywords = keywords_map.get(lang_l, [])
@@ -179,13 +209,35 @@ def highlight_code(code, lang):
 
     return ''.join(out)
 
+def check_image_magic(path):
+    """校验文件头部 magic bytes 是否与声明扩展名匹配，防止伪装成图片的文件被内嵌"""
+    ext = path.suffix.lower()
+    try:
+        with open(path, 'rb') as f:
+            head = f.read(16)
+    except OSError:
+        return False
+    if ext == '.png':
+        return head.startswith(b'\x89PNG\r\n\x1a\n')
+    if ext in ('.jpg', '.jpeg'):
+        return head.startswith(b'\xff\xd8')
+    if ext == '.gif':
+        return head.startswith(b'GIF87a') or head.startswith(b'GIF89a')
+    if ext == '.webp':
+        return head[:4] == b'RIFF' and head[8:12] == b'WEBP'
+    if ext == '.bmp':
+        return head.startswith(b'BM')
+    if ext == '.svg':
+        return b'<' in head[:64]
+    return True
+
+
 def resolve_image_path(url, base_dir):
     """解析图片路径；返回 (absolute_path, allowed)。
 
     - 远程图片：返回 (None, False)
-    - 本地绝对路径：一律拒绝（absolute paths are never embedded）
-    - 本地相对路径：resolve 后，auto 模式下只允许 .md 同目录及子目录；
-      all 模式放开相对路径遍历（含 ../），但仍是相对解析
+    - 本地图片：resolve 后只允许 .md 同目录及子目录（沙箱内），
+      绝对路径和目录遍历一律拒绝
     - 不存在或格式不支持：返回 (resolved_path, False)
     """
     if re.match(r'^(https?:)', url, re.I):
@@ -199,8 +251,6 @@ def resolve_image_path(url, base_dir):
             # 绝对路径永不内嵌：防止把任意位置的本地文件打包进输出 HTML
             return p.resolve(), False
         resolved = (base_resolved / p).resolve()
-        if EMBED_LOCAL_IMAGES == 'all':
-            return resolved, True
         return resolved, resolved.is_relative_to(base_resolved)
     except (OSError, ValueError):
         pass
@@ -224,7 +274,8 @@ def render_inline(text, base_dir=None):
             label = alt or url
             return (f'<span class="img-ext">🖼 <a href="{url}" target="_blank" '
                     f'rel="noopener">{label}</a></span>')
-        if allowed and resolved.exists() and resolved.suffix.lower() in IMG_MIME:
+        if allowed and resolved.exists() and resolved.suffix.lower() in IMG_MIME \
+                and check_image_magic(resolved):
             data = base64.b64encode(resolved.read_bytes()).decode()
             # 透明度：把每个实际内嵌的本地文件路径打到 stderr
             print(f"[md2share] embedded local image: {resolved}", file=sys.stderr)
@@ -292,16 +343,41 @@ def render_list(nodes, base_dir=None):
     return ''.join(parts)
 
 def render_html(blocks, title="md2view", base_dir=None, footnotes=None):
-    """渲染 blocks 为 HTML；title 为 None 时不注入文件名标题（正文已有 h1）"""
+    """渲染 blocks 为 HTML；title 为 None 时不注入文件名标题（正文已有 h1）
+
+    h2/h3 数量 >= 3 时自动生成可折叠目录（锚点跳转，暗色适配）。
+    """
+    # 给 h2/h3 分配锚点 id，并构建 TOC
+    toc_entries = []
+    sec_n = 0
+    for b in blocks:
+        if b['type'] == 'h' and b['level'] in (2, 3):
+            sec_n += 1
+            b['_id'] = f'sec-{sec_n}'
+            toc_entries.append((b['level'], b['_id'], b['content']))
+
     parts = []
     if title is not None:
         parts.append(f'<h1 class="title">{html.escape(title)}</h1>')
+
+    # 目录：h2 >= 3 个才生成（短文档不需要跳转）
+    h2_count = sum(1 for lvl, _, _ in toc_entries if lvl == 2)
+    if h2_count >= 3:
+        parts.append('<details class="toc"><summary>目录 · Contents</summary><nav>')
+        for lvl, sec_id, content in toc_entries:
+            cls = 'toc-h3' if lvl == 3 else 'toc-h2'
+            parts.append(
+                f'<a class="{cls}" href="#{sec_id}">{html.escape(content)}</a>'
+            )
+        parts.append('</nav></details>')
 
     for b in blocks:
         if b['type'] == 'h':
             lvl = b['level']
             tag = f'h{lvl}'
-            parts.append(f'<{tag} class="{tag}">{render_inline(b["content"], base_dir)}</{tag}>')
+            sec_id = b.get('_id')
+            id_attr = f' id="{sec_id}"' if sec_id else ''
+            parts.append(f'<{tag} class="{tag}"{id_attr}>{render_inline(b["content"], base_dir)}</{tag}>')
         elif b['type'] == 'p':
             parts.append(f'<p>{render_inline(b["content"], base_dir)}</p>')
         elif b['type'] == 'quote':
@@ -526,6 +602,47 @@ tr:hover { background: #EEF2F7; }
   background: linear-gradient(to right, transparent, var(--border) 15%, var(--accent) 50%, var(--border) 85%, transparent);
   margin: 28px 0;
 }
+/* ---- TOC 目录 ---- */
+details.toc {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin: 20px 0;
+  overflow: hidden;
+}
+details.toc summary {
+  cursor: pointer;
+  padding: 12px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--primary);
+  letter-spacing: 1px;
+  user-select: none;
+  list-style: none;
+}
+details.toc summary::-webkit-details-marker { display: none; }
+details.toc summary::before { content: '▸ '; }
+details.toc[open] summary::before { content: '▾ '; }
+details.toc nav {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 18px 14px;
+}
+details.toc a {
+  color: var(--text);
+  text-decoration: none;
+  font-size: 14px;
+  line-height: 1.5;
+  padding: 5px 0;
+  border-bottom: 1px dashed var(--border);
+}
+details.toc a:last-child { border-bottom: none; }
+details.toc a.toc-h3 {
+  padding-left: 18px;
+  font-size: 13px;
+  color: var(--text-light);
+}
+h2[id], h3[id] { scroll-margin-top: 12px; }
 .footnotes {
   margin-top: 32px;
   padding-top: 16px;
@@ -672,7 +789,11 @@ document.querySelectorAll('.copy-btn').forEach(btn => {
     )
 
 def parse_cli(argv):
-    """解析命令行参数。格式: md2share.py <md> [output] [--embed-local-images=auto|all]"""
+    """解析命令行参数。格式: md2share.py <md> [output] [--embed-local-images=auto]
+
+    --embed-local-images=all 已弃用（v1.5.0 起内嵌始终沙箱在 .md 目录内）；
+    传入 all 时按 auto 处理并打印弃用提示，保证旧调用不报错。
+    """
     global EMBED_LOCAL_IMAGES
     positional = []
     i = 0
@@ -685,15 +806,19 @@ def parse_cli(argv):
                 i += 1
                 val = argv[i]
             else:
-                print("用法: python md2share.py <md文件> [输出html] [--embed-local-images=auto|all]")
+                print("用法: python md2share.py <md文件> [输出html] [--embed-local-images=auto]")
                 sys.exit(1)
             if val not in ('auto', 'all'):
-                print("用法: python md2share.py <md文件> [输出html] [--embed-local-images=auto|all]")
+                print("用法: python md2share.py <md文件> [输出html] [--embed-local-images=auto]")
                 sys.exit(1)
+            if val == 'all':
+                print("[md2share] --embed-local-images=all 已弃用（v1.5.0）："
+                      "图片内嵌始终限制在 .md 文件所在目录及子目录", file=sys.stderr)
+                val = 'auto'
             EMBED_LOCAL_IMAGES = val
         elif a.startswith('-'):
             print(f"未知选项: {a}")
-            print("用法: python md2share.py <md文件> [输出html] [--embed-local-images=auto|all]")
+            print("用法: python md2share.py <md文件> [输出html] [--embed-local-images=auto]")
             sys.exit(1)
         else:
             positional.append(a)
@@ -704,7 +829,7 @@ def parse_cli(argv):
 def main():
     positional = parse_cli(sys.argv[1:])
     if len(positional) < 1:
-        print("用法: python md2share.py <md文件> [输出html] [--embed-local-images=auto|all]")
+        print("用法: python md2share.py <md文件> [输出html] [--embed-local-images=auto]")
         sys.exit(1)
 
     md_path = Path(positional[0])

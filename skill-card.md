@@ -36,7 +36,7 @@ Mitigation: The renderer only allows `http:`, `https:`, and `mailto:` URL scheme
 
 Risk: Local images (`![alt](./image.png)`) are read from the filesystem and embedded as base64.
 
-Mitigation: By default, only image files located in the same directory as the input Markdown file or a subdirectory of it are embedded. Absolute paths are **never** embedded. With the explicit opt-in `--embed-local-images=all`, relative paths may traverse outside the `.md` directory (`../`), and every embedded file path is logged to stderr so the user can audit exactly what was read. Remote images are never fetched automatically and are rendered as a link placeholder.
+Mitigation: Only image files located in the same directory as the input Markdown file or a subdirectory of it are embedded — there is no opt-in to widen this scope. Absolute paths and parent-directory traversal (`../`) are **never** embedded. Image files are validated by content (magic bytes) before embedding, and every embedded file path is logged to stderr so the user can audit exactly what was read. Remote images are never fetched automatically and are rendered as a link placeholder.
 
 ## Reference(s):
 
@@ -55,7 +55,7 @@ Mitigation: By default, only image files located in the same directory as the in
 
 ## Skill Version(s):
 
-1.4.0 (source: frontmatter and release metadata)
+1.5.0 (source: frontmatter and release metadata)
 
 ## Ethical Considerations:
 

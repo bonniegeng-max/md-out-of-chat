@@ -161,14 +161,14 @@ There are other "md to html" skills (`awesome-copilot/markdown-to-html`, `haidan
 - **Local by default** — `md2share.py` only produces a `.html` file. Nothing leaves your machine unless you explicitly ask for a public URL.
 - **No browser automation shipped** — the skill generates HTML only and contains no Puppeteer/Chrome code; no PNG output.
 - **Web deploy is opt-in** — only when you explicitly request it, explicitly confirm, and your agent has a trusted deploy tool.
-- **Sandboxed local images** — local images are embedded as base64 only when they live in the same directory as the `.md` file or a subdirectory of it. **Absolute paths are never embedded.** With `--embed-local-images=all`, relative paths may traverse outside the `.md` directory (`../`), and every embedded file path is logged to stderr for auditing.
+- **Sandboxed local images** — local images are embedded as base64 only when they live in the same directory as the `.md` file or a subdirectory of it. **Absolute paths and `../` traversal are never embedded.** Image content is validated via magic bytes before embedding, and every embedded file path is logged to stderr for auditing.
 - **Remote images never auto-fetch** — they render as a link placeholder, so no network request is made.
 - **No telemetry** — the script does not phone home.
 
 - **默认本地跑** — `md2share.py` 只生成 `.html` 文件，**数据不出你电脑**
 - **不内置浏览器自动化** — skill 只生成 HTML，不含 Puppeteer/Chrome 代码，不输出 PNG
 - **公开链接需明确授权** — 只有在你明确要求、明确确认、且有可信部署工具时才生成
-- **本地图片沙箱** — 只有与 `.md` 同目录或其子目录下的图片才会内嵌为 base64；**绝对路径一律不内嵌**；`--embed-local-images=all` 只放开相对路径遍历（如 `../`），且每个内嵌路径都会打到 stderr 供审计
+- **本地图片沙箱** — 只有与 `.md` 同目录或其子目录下的图片才会内嵌为 base64；**绝对路径和 `../` 遍历一律不内嵌**；内嵌前按文件头校验真实类型，每个内嵌路径都打到 stderr 供审计
 - **远程图片不自动下载** — 只渲染为链接占位，不会发起网络请求
 - **无任何统计上报**
 
@@ -187,7 +187,7 @@ There are other "md to html" skills (`awesome-copilot/markdown-to-html`, `haidan
 - 移动端适配
 - 中文字体（Noto CJK）
 - 嵌套列表（任意层级，有序/无序混排）
-- 图片支持：本地图片内嵌 base64（离线可看），默认沙箱到 .md 同目录及子目录，绝对路径一律不内嵌；`--embed-local-images=all` 放开相对路径遍历并打印内嵌路径；远程图片渲染为链接占位（不自动发请求，保护隐私）
+- 图片支持：本地图片内嵌 base64（离线可看），沙箱到 .md 同目录及子目录，绝对路径和 `../` 一律不内嵌，内嵌前校验文件头类型并打印内嵌路径；远程图片渲染为链接占位（不自动发请求，保护隐私）
 - 正文自带 `# 标题` 时不再叠加文件名标题
 - 截图输出由宿主环境自带工具完成（v1.3.2 起不再内置 screenshot.sh，避免浏览器自动化代码）
 - 脚注 `[^id]`：正文渲染为上标角标，可点击跳转，底部 NOTES 区汇总并支持回跳（论文/技术文档友好）

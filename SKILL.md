@@ -1,7 +1,7 @@
 ---
 name: md-out-of-chat
 description: Convert a Markdown file into a mobile-friendly, local HTML page that opens in any phone browser — markdown to html, chat export reader, WeChat/Telegram/Slack-friendly view. Runs 100% locally with no API key, no account, no upload. A public web URL is produced only when the user explicitly asks for it AND confirms, using a trusted deploy tool. This skill does not generate images or screenshots. Respond in the user's current language.
-version: 1.4.0
+version: 1.5.0
 homepage: https://github.com/bonniegeng-max/md-out-of-chat
 license: MIT
 metadata: {"clawdbot":{"emoji":"📄","requires":{"bins":["python3"],"packages":[],"env":[]}}}
@@ -132,7 +132,7 @@ Never generate a public URL silently. If deployment is not available, fall back 
 - `build_and_deploy.sh` only prepares a local `dist/` folder; it does not upload anything and is **off by default**.
 - This skill includes no browser automation code and does not generate screenshots.
 - A public URL is produced **only** when the user explicitly requests it, explicitly confirms, and the assistant has a trusted deploy tool.
-- **Local images** (`![alt](./image.png)`) are embedded as base64 by default, but **only** if they live in the same directory as the Markdown file or a subdirectory of it. **Absolute paths are never embedded.** With `--embed-local-images=all`, relative paths may traverse outside the `.md` directory (`../`); every embedded file path is logged to stderr so the user can audit exactly what was read.
+- **Local images** (`![alt](./image.png)`) are embedded as base64 **only** if they live in the same directory as the Markdown file or a subdirectory of it. **Absolute paths and directory traversal (`../`) are never embedded.** Image files are validated by content (magic bytes) before embedding, and every embedded file path is logged to stderr so the user can audit exactly what was read.
 - **Remote images** are never fetched automatically; they are rendered as a link placeholder to avoid network requests.
 - The user does not need to register any account.
 - This skill **never** sends user content to external APIs without explicit consent.
@@ -144,10 +144,7 @@ Never generate a public URL silently. If deployment is not available, fall back 
 # 2. Generate a local HTML file (default: local images under .md dir are embedded)
 python3 md2share.py my-notes.md
 
-# 3. (Optional) Allow embedding local images outside the .md directory via relative paths (each embedded path is logged to stderr; absolute paths are never embedded)
-python3 md2share.py my-notes.md --embed-local-images=all
-
-# 4. (Optional, only on explicit request) Build dist/ for deployment
+# 3. (Optional, only on explicit request) Build dist/ for deployment
 ./build_and_deploy.sh my-notes.md
 ```
 
@@ -159,10 +156,11 @@ python3 md2share.py my-notes.md --embed-local-images=all
 
 ## Limitations
 
-- MD parser supports nested lists (any depth, mixed ordered/unordered) and images (local files embedded as base64; by default only from the Markdown file's directory or its subdirectories; `--embed-local-images=all` additionally allows relative traversal such as `../` and logs every embedded path to stderr; absolute paths are never embedded; remote images rendered as a link placeholder so no network request is made)
+- MD parser supports nested lists (any depth, mixed ordered/unordered) and images (local images embedded as base64 only from the Markdown file's directory or its subdirectories; absolute paths and `../` traversal are never embedded; image content is validated via magic bytes before embedding; every embedded path is logged to stderr; remote images rendered as a link placeholder so no network request is made)
 - No screenshot/PNG output — this skill produces HTML only
 - Footnotes: `[^id]` refs render as superscript anchors, definitions collected into a NOTES section at the bottom with back-links
+- Table of contents: when the document has 3+ h2 headings, a collapsible TOC with anchor links is generated at the top (mobile-friendly, dark-mode aware)
 - Horizontal rules (`---`, `***`, `___`) render as styled dividers
 - Dark mode: follows `prefers-color-scheme` with a manual toggle that remembers the choice
-- Code highlighter covers python / javascript / bash / sql out of the box; other languages render as plain text with a label
+- Code highlighter covers python / javascript / typescript / bash / sql / java / c / cpp / go / rust / php / ruby / kotlin / swift / json / yaml / css out of the box (with common aliases: py, js, ts, sh, golang, rs, yml, kt, rb, c++); other languages render as plain text with a label
 - Highlighter is regex-based (single-pass tokenize: comment → string → keyword → number, no nesting bugs)
