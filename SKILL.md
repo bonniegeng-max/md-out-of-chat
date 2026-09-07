@@ -1,7 +1,7 @@
 ---
 name: md-out-of-chat
 description: Convert a Markdown file into a mobile-friendly, local HTML page that opens in any phone browser — markdown to html, chat export reader, WeChat/Telegram/Slack-friendly view. Runs 100% locally with no API key, no account, no upload. A public web URL is produced only when the user explicitly asks for it AND confirms, using a trusted deploy tool. This skill does not generate images or screenshots. Respond in the user's current language.
-version: 1.5.1
+version: 1.5.2
 homepage: https://github.com/bonniegeng-max/md-out-of-chat
 license: MIT
 metadata: {"clawdbot":{"emoji":"📄","requires":{"bins":["python3"],"packages":[],"env":[]}}}
@@ -15,7 +15,7 @@ AI agents live in chat (WeChat, Feishu, Slack, Discord, …) and love to write `
 
 ## Activation
 
-Only activate this skill when the user explicitly mentions it by name (e.g. "use md-out-of-chat", "用 md-out-of-chat 转换") or clearly asks to convert a Markdown file into a mobile-friendly readable HTML page. Do not activate on vague phrases like "show me this" or "转一下" alone.
+Only activate this skill when **both** conditions hold: (1) the user explicitly mentions it by name (e.g. "use md-out-of-chat", "用 md-out-of-chat 转换"), and (2) the user identifies a concrete input — a `.md` file path, an attached file, or a file selected in the conversation. Do not activate on vague phrases alone ("show me this", "转一下", "convert this"), and never infer conversion targets from chat history. Only read the file(s) the user explicitly identified. Never deploy, publish, or invoke other tools unless the user separately requests and confirms that action.
 
 ## The Problem
 

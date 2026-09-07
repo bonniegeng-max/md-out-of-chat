@@ -67,7 +67,7 @@ Try it on a sample file: see `demo.md` for the input.
 | Code | ` ```python ` | Dark header with language label, one-tap copy button |
 | List | `- item` | Bulleted with proper spacing |
 
-> **语法高亮支持范围（如实标注）**：`md2share.py` 的词法高亮只内置 **4 种语言**——`python` / `javascript` / `bash` / `sql`（含关键字 + 注释着色）；代码块请用这 4 个规范名标注语言。其它语言（如 `js`、`py`、`sh`、`c++`）**不会高亮**：仍显示大写语言标签 + 一键复制按钮，但内容退化为纯文本渲染（仅字符串/数字做简单着色，无关键字与注释高亮）。这是当前实现的行为，未做任何代码改动。
+> **语法高亮支持范围（如实标注）**：`md2share.py` 内置 **17 种语言**的词法高亮——`python` / `javascript` / `typescript` / `bash` / `sql` / `java` / `c` / `cpp` / `go` / `rust` / `php` / `ruby` / `kotlin` / `swift` / `json` / `yaml` / `css`（关键字 + 注释 + 字符串 + 数字着色），并支持常用别名（`py`、`js`、`ts`、`sh`、`golang`、`rs`、`yml`、`kt`、`rb`、`c++` 等自动映射）。未列出的语言不会高亮：仍显示大写语言标签 + 一键复制按钮，内容退化为纯文本渲染（仅字符串/数字做简单着色）。
 
 > **如何替换成你自己的案例**：把仓库根目录的 `demo.md` 换成你自己的 Markdown，`python3 md2share.py 你的文件.md` 生成 HTML 后（用宿主截图工具）另存为同名 `demo.png`；文件名保持不变，上面这些引用就会自动指向你的产物。
 
@@ -75,11 +75,18 @@ Try it on a sample file: see `demo.md` for the input.
 
 ## How to Use · 怎么用
 
-Once installed, talk to your AI agent with an explicit skill mention:
+Once installed, talk to your AI agent with an explicit skill mention **and a concrete file**:
 
-> "用 md-out-of-chat 转换这份 md"
-> "use md-out-of-chat to convert this markdown"
-> "把这份 md 转成手机能看的 HTML"
+> "用 md-out-of-chat 把 `notes.md` 转成 HTML"
+> "use md-out-of-chat to convert `report.md`"
+> "把 `demo.md` 转成手机能看的 HTML"
+
+**Trigger contract · 触发契约：**
+
+- This skill only runs when the user names it explicitly AND identifies a concrete `.md` file (a path, an attached file, or a file selected in the conversation).
+- The agent must **not** infer conversion targets from chat history or vague phrases like "转一下" / "convert this".
+- Only the file(s) the user explicitly identifies are read; nothing else is touched.
+- A public URL is **never** generated unless the user separately requests deployment AND confirms it.
 
 The agent decides the right output based on your explicit request:
 
