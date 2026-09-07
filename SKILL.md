@@ -1,7 +1,7 @@
 ---
 name: md-out-of-chat
 description: Convert a Markdown file into a mobile-friendly, local HTML page that opens in any phone browser — markdown to html, chat export reader, WeChat/Telegram/Slack-friendly view. Runs 100% locally with no API key, no account, no upload. A public web URL is produced only when the user explicitly asks for it AND confirms, using a trusted deploy tool. This skill does not generate images or screenshots. Respond in the user's current language.
-version: 1.5.0
+version: 1.5.1
 homepage: https://github.com/bonniegeng-max/md-out-of-chat
 license: MIT
 metadata: {"clawdbot":{"emoji":"📄","requires":{"bins":["python3"],"packages":[],"env":[]}}}
@@ -134,6 +134,7 @@ Never generate a public URL silently. If deployment is not available, fall back 
 - A public URL is produced **only** when the user explicitly requests it, explicitly confirms, and the assistant has a trusted deploy tool.
 - **Local images** (`![alt](./image.png)`) are embedded as base64 **only** if they live in the same directory as the Markdown file or a subdirectory of it. **Absolute paths and directory traversal (`../`) are never embedded.** Image files are validated by content (magic bytes) before embedding, and every embedded file path is logged to stderr so the user can audit exactly what was read.
 - **Remote images** are never fetched automatically; they are rendered as a link placeholder to avoid network requests.
+- **Generated HTML is fully escaped.** All Markdown text, code content, and code-fence language labels are HTML-escaped before being written into the output page (language labels are additionally restricted to a safe character set), so untrusted Markdown cannot inject scripts into the generated page.
 - The user does not need to register any account.
 - This skill **never** sends user content to external APIs without explicit consent.
 

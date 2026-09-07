@@ -55,7 +55,7 @@ Mitigation: Only image files located in the same directory as the input Markdown
 
 ## Skill Version(s):
 
-1.5.0 (source: frontmatter and release metadata)
+1.5.1 (source: frontmatter and release metadata)
 
 ## Ethical Considerations:
 

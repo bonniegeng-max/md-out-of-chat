@@ -195,11 +195,12 @@ def highlight_code(code, lang):
     pos = 0
     for m in pattern.finditer(code):
         out.append(html.escape(code[pos:m.start()]))
-        if m.group('cmt') is not None:
+        gd = m.groupdict()
+        if gd.get('cmt') is not None:
             cls = 'cmt'
-        elif m.group('str') is not None:
+        elif gd.get('str') is not None:
             cls = 'str'
-        elif m.group('kw') is not None:
+        elif gd.get('kw') is not None:
             cls = 'kw'
         else:
             cls = 'num'
@@ -388,7 +389,9 @@ def render_html(blocks, title="md2view", base_dir=None, footnotes=None):
             parts.append(render_list(build_list_tree(b['items']), base_dir))
         elif b['type'] == 'code':
             code_html = highlight_code(b['content'], b['lang'])
-            lang_label = b['lang'].upper() if b['lang'] else 'TEXT'
+            # code-fence 语言标注来自不可信输入，只保留安全字符集并转义，防 HTML 注入（T09）
+            _safe_lang = re.sub(r'[^A-Za-z0-9+#._-]', '', (b['lang'] or '').strip())[:24]
+            lang_label = html.escape(_safe_lang.upper()) if _safe_lang else 'TEXT'
             parts.append(
                 f'<div class="code-block">'
                 f'<div class="code-header">'
