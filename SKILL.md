@@ -1,7 +1,7 @@
 ---
 name: md-out-of-chat
-description: Convert a Markdown file into a mobile-friendly, local HTML page that opens in any phone browser — markdown to html, chat export reader, WeChat/Telegram/Slack-friendly view. Runs 100% locally with no API key, no account, no upload. A public web URL is produced only when the user explicitly asks for it AND confirms, using a trusted deploy tool. This skill does not generate images or screenshots. Respond in the user's current language.
-version: 1.5.2
+description: 把 Markdown 文件变成手机能直接打开的单页 HTML——本地运行、不上传、不需要账号和 API Key。Convert a Markdown file into a mobile-friendly, local HTML page that opens in any phone browser — markdown to html, chat export reader, WeChat/Feishu/Slack/Discord-friendly view. Use when a .md report, note, or chat export needs to be read or shared on a phone. Runs 100% locally with no API key, no account, no upload. A public web URL is produced only when the user explicitly asks for it AND confirms, using a trusted deploy tool. This skill does not generate images or screenshots. Respond in the user's current language.
+version: 1.5.3
 homepage: https://github.com/bonniegeng-max/md-out-of-chat
 license: MIT
 metadata: {"clawdbot":{"emoji":"📄","requires":{"bins":["python3"],"packages":[],"env":[]}}}
@@ -34,6 +34,12 @@ Only activate this skill when **both** conditions hold: (1) the user explicitly 
 - Default: a local `.html` file that opens in any mobile browser
 - `web`: a public URL **only** if the user explicitly asks for it, explicitly confirms before anything is deployed, and the assistant has a trusted deploy tool; otherwise fall back to local HTML
 - This skill **does not** generate PNG screenshots or images. If the user asks for an image, explain that rendering an HTML file to PNG is up to the host environment's own tools — do not invoke other tools automatically.
+
+## Not the same as
+
+- **A Markdown viewer or note-taking app** — it converts one file you name into a page you can open on a phone. It is not a live editor, and it does not keep a library.
+- **An image generator** — no PNG/JPG output. If a picture is needed, that belongs to the host environment's own tools.
+- **A publish tool** — local HTML is the default. A public URL is produced only after an explicit, separately confirmed request.
 
 ## Design Spec (Blue / White / Gray — Minimal & Clean)
 
