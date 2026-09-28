@@ -1,28 +1,51 @@
 ---
 name: md-out-of-chat
-description: 把 Markdown 文件变成手机能直接打开的单页 HTML——本地运行、不上传、不需要账号和 API Key。Convert a Markdown file into a mobile-friendly, local HTML page that opens in any phone browser — markdown to html, chat export reader, WeChat/Feishu/Slack/Discord-friendly view. Use when a .md report, note, or chat export needs to be read or shared on a phone. Runs 100% locally with no API key, no account, no upload. A public web URL is produced only when the user explicitly asks for it AND confirms, using a trusted deploy tool. This skill does not generate images or screenshots. Respond in the user's current language.
+description: Turn Markdown reports, AI chat exports, and technical notes into phone-friendly single-page HTML. Built for WeChat / Feishu / Slack / Discord workflows where raw `.md` is painful to read on mobile. Local-first, no upload, no API key, and public deployment only after explicit confirmation.
 version: 1.5.3
 homepage: https://github.com/bonniegeng-max/md-out-of-chat
 license: MIT
 metadata: {"clawdbot":{"emoji":"📄","requires":{"bins":["python3"],"packages":[],"env":[]}}}
 ---
-
 # md-out-of-chat
 
-**Pulling Markdown out of chat, into something people can actually read.**
+**Turn Markdown reports and chat exports into phone-friendly HTML pages.**
 
-AI agents live in chat (WeChat, Feishu, Slack, Discord, …) and love to write `.md`. But `.md` doesn't render well in any of those apps. Code breaks, tables misalign, links look dead. This skill is the bridge: it takes a `.md` file and turns it into a mobile-friendly, copyable, shareable view.
+AI assistants are excellent at producing Markdown, but chat apps are terrible at rendering it on phones. In WeChat, Feishu, Slack, Discord, and similar tools, code blocks break layout, tables overflow, and links become painful to scan. `md-out-of-chat` fixes that last mile: it takes a Markdown file you explicitly provide and turns it into a mobile-friendly single-page HTML that people can actually open, read, and forward.
+
+Use this when a report, note, proposal, or AI-generated chat export needs to be **read on a phone, forwarded to someone else, or reviewed away from a laptop**.
+
+This skill is **not** a note-taking app, **not** a live Markdown editor, and **not** an image generator. By default it creates a local HTML file. A public web URL is produced only when the user explicitly asks for it and confirms before deployment.
 
 ## Activation
 
-Only activate this skill when **both** conditions hold: (1) the user explicitly mentions it by name (e.g. "use md-out-of-chat", "用 md-out-of-chat 转换"), and (2) the user identifies a concrete input — a `.md` file path, an attached file, or a file selected in the conversation. Do not activate on vague phrases alone ("show me this", "转一下", "convert this"), and never infer conversion targets from chat history. Only read the file(s) the user explicitly identified. Never deploy, publish, or invoke other tools unless the user separately requests and confirms that action.
+Only activate this skill when **both** conditions hold:
 
-## The Problem
+1. the user explicitly mentions this skill by name, or clearly asks to convert a Markdown file into a phone-friendly HTML page
+2. the user identifies a concrete input — a `.md` file path, an attached file, or a file explicitly selected in the conversation
 
-- `.md` files **cannot be opened in WeChat** on mobile
-- Code blocks **break layout** on small screens
-- Tables **misalign columns** on mobile
-- When you're away from your computer, you **can't view** what your assistant just made
+Do not activate on vague phrases alone ("show me this", "转一下", "convert this"), and never infer conversion targets from chat history. Only read the file(s) the user explicitly identified. Never deploy, publish, or invoke other tools unless the user separately requests and confirms that action.
+
+## Why people install it
+
+- Chat apps render `.md` badly on mobile.
+- Teams still need to read AI-generated reports on phones.
+- The output must be easy to open, copy, and forward.
+- Many users want a safe local default instead of uploading documents to a third-party service.
+
+## Best use cases
+
+- weekly reports
+- AI chat export reading
+- technical handoff notes
+- mobile review of Markdown documents
+- shareable HTML pages generated from Markdown without default cloud upload
+
+## The problem
+
+- `.md` files are hard to read inside WeChat and similar chat apps on mobile
+- Code blocks break layout on small screens
+- Tables become painful to scan
+- Good content exists, but people still cannot read it comfortably on phones
 
 ## Input
 
@@ -40,6 +63,7 @@ Only activate this skill when **both** conditions hold: (1) the user explicitly 
 - **A Markdown viewer or note-taking app** — it converts one file you name into a page you can open on a phone. It is not a live editor, and it does not keep a library.
 - **An image generator** — no PNG/JPG output. If a picture is needed, that belongs to the host environment's own tools.
 - **A publish tool** — local HTML is the default. A public URL is produced only after an explicit, separately confirmed request.
+
 
 ## Design Spec (Blue / White / Gray — Minimal & Clean)
 

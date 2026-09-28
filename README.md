@@ -1,79 +1,87 @@
 # md-out-of-chat
 
-> **一句话定位**：纯本地、零依赖的 Markdown 转换器——把一个 `.md` 变成手机浏览器能直接打开、能直接发出去阅读的网页 / 长图；内容全程不离开你的电脑，无需 API Key、云账号或任何外部服务。
+> **One-line positioning**: a local-first Markdown converter that turns one `.md` file into a phone-friendly HTML page people can actually open, read, and forward — no upload, no API key, no external service required.
 
-> **Pulling Markdown out of chat, into something people can actually read.**
-> **把 Markdown 从聊天里拿出来，变成人能直接看的东西。**
-
----
-
-## 30-Second Pitch · 30 秒介绍
-
-**中文**：在 IM 里（微信/飞书/Slack）跟 AI 聊，AI 给你写了一份 markdown，**但手机端根本看不了**。这个 skill 解决的就是这个 —— 把 .md 转成手机浏览器能直接打开的本地网页版：表格对齐、代码带语言标签 + 一键复制。告诉你的 AI "用 md-out-of-chat 转换这份 md"，**它生成一个本地 HTML 文件，手机上点开就能看**。本地跑，数据不外传。
-
-**English**: Ever get a Markdown file in chat and not be able to read it on your phone? Code breaks, tables misalign, you can't copy a snippet. This skill turns any `.md` file into a mobile-friendly web page with proper tables, syntax-highlighted code blocks, and one-tap copy. Just say "use md-out-of-chat to convert this" to your AI agent, and you get a local HTML file that opens in any phone browser. Local by default, no data uploaded.
+> **Turn Markdown reports and AI chat exports into phone-friendly HTML pages.**
+> **把 Markdown 报告和 AI 聊天导出，变成手机上真正能看的网页。**
 
 ---
 
-## The Problem · 问题
+## What it does
 
-You (or your AI agent) wrote something in Markdown. It's sitting in your chat — WeChat, Feishu, Slack, Discord, iMessage, Telegram — and **you can't actually read it on your phone**.
+This skill turns a Markdown file into a phone-friendly single-page HTML that is actually readable in mobile browsers.
+
+It is designed for one practical gap: AI assistants generate lots of `.md`, but WeChat, Feishu, Slack, Discord, and similar chat tools do a poor job rendering it on phones. Code blocks become unreadable, tables overflow, and long links feel broken. `md-out-of-chat` fixes that last mile.
+
+## Why it is useful
+
+- Read AI-generated reports on your phone
+- Forward a chat export as a clean web page
+- Share a technical note without asking the receiver to open raw Markdown
+- Keep the default workflow local and private
+
+## What makes it different
+
+- **Local-first:** default output is a local `.html` file
+- **No API key:** ready to use without account setup
+- **Phone-first:** optimized for mobile reading, not desktop-only preview
+- **Explicit deploy boundary:** public URL output only happens after a separate request and confirmation
+
+## Demo first
+
+If someone only sees one proof asset, it should be this:
+
+- `demo.md` = example input
+- `demo.png` = phone-readable output proof
+- default result = a local `.html` file for mobile reading
+
+The storefront should treat `demo.png` as conversion evidence, not just as an optional screenshot. The message is simple: **Markdown that was painful in chat becomes readable on mobile.**
+
+## Best use cases
+
+- weekly reports
+- AI chat export reading
+- technical handoff notes
+- mobile review of Markdown documents
+- shareable HTML pages generated from Markdown without default cloud upload
+
+## The problem
+
+You (or your AI agent) wrote something in Markdown. It is sitting in your chat — WeChat, Feishu, Slack, Discord, iMessage, Telegram — and **you cannot actually read it well on your phone**.
 
 - Code blocks lose indentation and break lines
 - Tables misalign into a single column
-- Long text scrolls forever
-- You can't copy a snippet without manual selection
+- Long text becomes painful to scan
+- You cannot copy a snippet cleanly without manual selection
 
-你在 IM 里（微信、飞书、Slack、Discord……）跟 AI 写了一份 `.md`，**但手机端根本看不了**：
-- 代码错位、缩进丢失
-- 表格对不齐
-- 长文本滚不动
-- 想复制一段代码 = **得手选每一行**
-
----
-
-## The Fix · 解决
+## The fix
 
 Run the file through this skill. It produces:
 
-把文件过一遍这个 skill，你得到：
+- **A local HTML file** that opens in any mobile browser
+- Proper tables and code blocks with language labels
+- Copy-friendly output instead of raw Markdown friction
 
-- **A local HTML file** — opens in any mobile browser, with proper tables, code blocks with language labels and **one-tap copy**
+A public web URL is only generated when you explicitly ask for it and the agent has a trusted deploy tool.
 
-- **一个本地 HTML 文件** — 任何手机浏览器都能打开，表格对齐、代码带语言标签 + **一键复制**
-
-A public web URL is only generated when you explicitly ask for it and your agent has a trusted deploy tool.
-
----
-
-## What md2share Produces · 输出效果
+## What md2share produces
 
 Try it on a sample file: see `demo.md` for the input.
 
-- **Live web demo**: [Click to view](https://2uf0a7axwwwr.space.minimaxi.com) (h1/h2 headings, code blocks with language labels, copy buttons, mobile-friendly tables)
-- **Long screenshot**: see `demo.png` in this repo (a 750×2750 phone-shaped snapshot, Chinese + English fully rendered)
-
-| Element | Input (Markdown) | Output (HTML) |
-|---------|------------------|----------------------------|
-| Heading | `# Title` | Blue title with bottom border |
-| Table | `\| col \| col \|` | Zebra-striped, mobile-friendly |
-| Code | ` ```python ` | Dark header with language label, syntax highlight, one-tap copy |
-| Chinese | `你好，世界` | Renders correctly (Noto CJK fonts pre-installed) |
+- **Long screenshot proof**: `demo.png`
+- **Example input**: `demo.md`
+- **Default result**: a local `.html` file for phone reading
 
 | Element | Input (Markdown) | Output (HTML) |
 |---------|------------------|---------------|
 | Heading | `# Title` | Blue title with bottom border |
-| Table | `\| col \| col \|` | Zebra-striped, mobile-friendly |
-| Code | ` ```python ` | Dark header with language label, one-tap copy button |
-| List | `- item` | Bulleted with proper spacing |
+| Table | `| col | col |` | Zebra-striped, mobile-friendly |
+| Code | <code>```python</code> | Dark header with language label, one-tap copy button |
+| List | `- item` | Proper spacing and readable mobile layout |
 
-> **语法高亮支持范围（如实标注）**：`md2share.py` 内置 **17 种语言**的词法高亮——`python` / `javascript` / `typescript` / `bash` / `sql` / `java` / `c` / `cpp` / `go` / `rust` / `php` / `ruby` / `kotlin` / `swift` / `json` / `yaml` / `css`（关键字 + 注释 + 字符串 + 数字着色），并支持常用别名（`py`、`js`、`ts`、`sh`、`golang`、`rs`、`yml`、`kt`、`rb`、`c++` 等自动映射）。未列出的语言不会高亮：仍显示大写语言标签 + 一键复制按钮，内容退化为纯文本渲染（仅字符串/数字做简单着色）。
+> **Syntax highlighting, honestly stated**: `md2share.py` includes built-in highlighting support for 17 languages — `python`, `javascript`, `typescript`, `bash`, `sql`, `java`, `c`, `cpp`, `go`, `rust`, `php`, `ruby`, `kotlin`, `swift`, `json`, `yaml`, and `css` — plus common aliases such as `py`, `js`, `ts`, `sh`, `golang`, `rs`, `yml`, `kt`, `rb`, and `c++`. Unlisted languages still render cleanly with a language label and copy button, but without full highlighting.
 
-> **如何替换成你自己的案例**：把仓库根目录的 `demo.md` 换成你自己的 Markdown，`python3 md2share.py 你的文件.md` 生成 HTML 后（用宿主截图工具）另存为同名 `demo.png`；文件名保持不变，上面这些引用就会自动指向你的产物。
-
----
-
-## How to Use · 怎么用
+## How to use
 
 Once installed, talk to your AI agent with an explicit skill mention **and a concrete file**:
 
@@ -81,25 +89,15 @@ Once installed, talk to your AI agent with an explicit skill mention **and a con
 > "use md-out-of-chat to convert `report.md`"
 > "把 `demo.md` 转成手机能看的 HTML"
 
-**Trigger contract · 触发契约：**
+### Trigger contract
 
-- This skill only runs when the user names it explicitly AND identifies a concrete `.md` file (a path, an attached file, or a file selected in the conversation).
+- This skill only runs when the user names it explicitly **and** identifies a concrete `.md` file.
 - The agent must **not** infer conversion targets from chat history or vague phrases like "转一下" / "convert this".
-- Only the file(s) the user explicitly identifies are read; nothing else is touched.
-- A public URL is **never** generated unless the user separately requests deployment AND confirms it.
+- Only the file(s) the user explicitly identifies are read.
+- A public URL is **never** generated unless the user separately requests deployment **and** confirms it.
 
-The agent decides the right output based on your explicit request:
+The default is always local-first.
 
-| 场景 · Scenario | 输出 · Output |
-|-----------------|---------------|
-| 没有特别说明 · No specific output requested | 本地 HTML · Local HTML file |
-| "截图/图片" · "screenshot/image" | 本 skill 不生成图片：HTML 已生成，转 PNG 由宿主自带工具完成 · No PNG output: HTML is ready, PNG rendering is up to the host's own tools |
-| "公开链接/URL" 且有部署工具 · "public link/URL" with deploy tool | Web URL（需用户明确确认 · requires explicit confirmation） |
-| "发给朋友" · "send to friend" | 生成 HTML 文件后由用户转发 · Generate HTML, then forward the file |
-
-The default is always local-first. A public URL is never generated silently.
-
----
 
 ## Install · 安装
 

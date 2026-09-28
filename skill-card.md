@@ -1,6 +1,12 @@
 ## Description:
 
-md-out-of-chat takes Markdown files produced by AI agents in chat (WeChat, Feishu, Slack, Discord, etc.) and turns them into a mobile-friendly local web page. It fixes code-block layout breakage, table misalignment, and unreadable long text on mobile, adding syntax highlighting, language labels, and one-tap copy buttons for code blocks.
+md-out-of-chat turns Markdown reports, AI chat exports, and technical notes into a phone-friendly local web page that people can actually open, read, and forward on mobile. It is built for WeChat / Feishu / Slack / Discord style workflows where raw `.md` is painful to read on phones.
+
+Core value:
+- Local-first, no upload by default
+- No API key required
+- Easy to open in any mobile browser
+- Public URL only after an explicit request and confirmation
 
 This skill is ready for commercial/non-commercial use.
 
@@ -14,7 +20,7 @@ MIT
 
 ## Use Case:
 
-Users who receive Markdown content from AI agents inside instant-message apps and need to read or share it on mobile devices. Typical content includes research summaries, comparison tables, code snippets, strategy docs, and how-to guides.
+Users who receive Markdown content from AI agents inside instant-message apps and need to read, review, or forward it on mobile devices. Typical content includes reports, research summaries, comparison tables, code snippets, strategy docs, technical handoff notes, and chat exports.
 
 ### Deployment Geography for Use:
 
@@ -22,21 +28,21 @@ Global
 
 ## Known Risks and Mitigations:
 
-Risk: The skill writes HTML files to the user's local filesystem (`dist/`, or the path specified by the output argument).
+Risk: The skill writes HTML files to the user's local filesystem.
 
-Mitigation: All writes are local and explicit — the user supplies the input path and the skill produces an output file. No data is uploaded to remote services by the core script.
+Mitigation: All writes are local and explicit — the user supplies the input path and the skill produces an output file. No data is uploaded by default.
 
-Risk: The optional `build_and_deploy.sh` helper invokes Python to prepare a local `dist/` folder. It is off by default and runs only after the user explicitly asks for a deployable folder.
+Risk: The optional `build_and_deploy.sh` helper prepares a local `dist/` folder and may be used in a deploy workflow.
 
-Mitigation: This script is opt-in and only writes files locally. It does not upload anything.
+Mitigation: This path is opt-in and should only be used after the user explicitly asks for a deployable or public result.
 
 Risk: Markdown links are rendered as `<a>` tags.
 
-Mitigation: The renderer only allows `http:`, `https:`, and `mailto:` URL schemes; `javascript:` and other unsafe schemes are left as plain text to reduce XSS risk.
+Mitigation: Only safe URL schemes should be rendered as clickable links; unsafe schemes should remain plain text.
 
-Risk: Local images (`![alt](./image.png)`) are read from the filesystem and embedded as base64.
+Risk: Local images may be embedded into the output page.
 
-Mitigation: Only image files located in the same directory as the input Markdown file or a subdirectory of it are embedded — there is no opt-in to widen this scope. Absolute paths and parent-directory traversal (`../`) are **never** embedded. Image files are validated by content (magic bytes) before embedding, and every embedded file path is logged to stderr so the user can audit exactly what was read. Remote images are never fetched automatically and are rendered as a link placeholder.
+Mitigation: Embedding should remain limited to images in the Markdown file's directory or subdirectories, while absolute paths and parent-directory traversal stay blocked.
 
 ## Reference(s):
 
@@ -51,12 +57,12 @@ Mitigation: Only image files located in the same directory as the input Markdown
 
 **Output Parameters:** [1D]
 
-**Other Properties Related to Output:** [Produces a single local `.html` file and shell commands to build it. This skill ships no browser automation scripts and does not generate screenshots. A public URL is only produced when the user explicitly requests it, explicitly confirms, and the host agent has a trusted deploy tool.]
+**Other Properties Related to Output:** [Produces a local `.html` file by default. A public URL is only produced when the user explicitly requests it, explicitly confirms, and the host agent has a trusted deploy tool.]
 
 ## Skill Version(s):
 
-1.5.2 (source: frontmatter and release metadata)
+1.5.3
 
 ## Ethical Considerations:
 
-Users should evaluate whether this skill is appropriate for their environment, review generated HTML before sharing, and apply their organization's safety, security, and compliance requirements before deployment.
+Users should review generated HTML before sharing it publicly and apply their own security, privacy, and compliance requirements before deployment or forwarding.
