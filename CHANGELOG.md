@@ -2,15 +2,22 @@
 
 Markdown 转手机网页 · MD Out of Chat（`md-out-of-chat`）的版本变更记录。
 
-- 最新版本：**1.6.0**
+- 最新版本：**1.6.1**
 - 发布渠道：[ClawHub](https://clawhub.ai/bonniegeng-max/skills/md-out-of-chat)
-- 版本数：17（含初始版本）
+- 版本数：18（含初始版本）
 
 > 本文件由 ClawHub registry 的逐版本发布记录回溯整理生成（2026-09-29）。此后每次发版请在此追加一条。
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
 ## [Unreleased]
+
+## [1.6.1] - 2026-09-29
+
+发布元数据修复，文件内容与行为无变化。
+
+- 恢复 ClawHub 显示名为 `Markdown 转手机网页 · MD Out of Chat`。1.6.0 发布时未带 `--name`，ClawHub 回退成裸 slug，中文检索面丢失。
+- 发版提醒：**务必带 `--name "Markdown 转手机网页 · MD Out of Chat"`**，命令为 `clawhub publish --name "Markdown 转手机网页 · MD Out of Chat" --slug md-out-of-chat --version <v>`。
 
 ## [1.6.0] - 2026-09-29
 
