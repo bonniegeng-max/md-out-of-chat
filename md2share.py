@@ -8,6 +8,7 @@ import re
 import html
 import base64
 import os
+from datetime import datetime, timedelta
 from pathlib import Path
 
 IMG_MIME = {
@@ -18,6 +19,35 @@ IMG_MIME = {
 
 # 本地图片内嵌策略：'auto' 只允许 .md 同目录及子目录；'all' 显式放开限制
 EMBED_LOCAL_IMAGES = 'auto'
+
+# 批量导出模式的时间过滤阈值（None = 不过滤）；按文件修改时间筛选
+SINCE = None
+
+USAGE = ("用法: python md2share.py <md文件> [输出html] [--embed-local-images=auto]\n"
+         "      python md2share.py <目录> [输出目录] [--since=today|week|7d|YYYY-MM-DD]")
+
+
+def parse_since(val, now=None):
+    """把 --since 取值解析为 datetime 阈值。
+
+    支持 today / week / 7d / 2026-09-29。只做本地文件修改时间比较，不写入任何状态文件。
+    无法识别时返回 None（调用方负责退出）。
+    """
+    now = now or datetime.now()
+    v = (val or '').strip().lower()
+    if v in ('today', '今天', '今日'):
+        return now.replace(hour=0, minute=0, second=0, microsecond=0)
+    if v in ('week', '本周', '这周'):
+        midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        return midnight - timedelta(days=midnight.weekday())
+    if v.endswith('d') and v[:-1].isdigit():
+        return now - timedelta(days=int(v[:-1]))
+    try:
+        return datetime.strptime(v, '%Y-%m-%d')
+    except ValueError:
+        print(f"[md2share] 无法识别的 --since 取值: {val}"
+              f"（支持 today / week / 7d / 2026-09-29）", file=sys.stderr)
+        return None
 
 def split_row(line):
     """按未转义的 | 切分表格行，支持 \\| 转义"""
@@ -797,22 +827,34 @@ def parse_cli(argv):
     --embed-local-images=all 已弃用（v1.5.0 起内嵌始终沙箱在 .md 目录内）；
     传入 all 时按 auto 处理并打印弃用提示，保证旧调用不报错。
     """
-    global EMBED_LOCAL_IMAGES
+    global EMBED_LOCAL_IMAGES, SINCE
     positional = []
     i = 0
     while i < len(argv):
         a = argv[i]
-        if a == '--embed-local-images' or a.startswith('--embed-local-images='):
+        if a == '--since' or a.startswith('--since='):
             if '=' in a:
                 val = a.split('=', 1)[1]
             elif i + 1 < len(argv):
                 i += 1
                 val = argv[i]
             else:
-                print("用法: python md2share.py <md文件> [输出html] [--embed-local-images=auto]")
+                print(USAGE)
+                sys.exit(1)
+            SINCE = parse_since(val)
+            if SINCE is None:
+                sys.exit(1)
+        elif a == '--embed-local-images' or a.startswith('--embed-local-images='):
+            if '=' in a:
+                val = a.split('=', 1)[1]
+            elif i + 1 < len(argv):
+                i += 1
+                val = argv[i]
+            else:
+                print(USAGE)
                 sys.exit(1)
             if val not in ('auto', 'all'):
-                print("用法: python md2share.py <md文件> [输出html] [--embed-local-images=auto]")
+                print(USAGE)
                 sys.exit(1)
             if val == 'all':
                 print("[md2share] --embed-local-images=all 已弃用（v1.5.0）："
@@ -821,7 +863,7 @@ def parse_cli(argv):
             EMBED_LOCAL_IMAGES = val
         elif a.startswith('-'):
             print(f"未知选项: {a}")
-            print("用法: python md2share.py <md文件> [输出html] [--embed-local-images=auto]")
+            print(USAGE)
             sys.exit(1)
         else:
             positional.append(a)
@@ -829,19 +871,8 @@ def parse_cli(argv):
     return positional
 
 
-def main():
-    positional = parse_cli(sys.argv[1:])
-    if len(positional) < 1:
-        print("用法: python md2share.py <md文件> [输出html] [--embed-local-images=auto]")
-        sys.exit(1)
-
-    md_path = Path(positional[0])
-    if not md_path.exists():
-        print(f"找不到: {md_path}")
-        sys.exit(1)
-
-    output_path = Path(positional[1]) if len(positional) > 1 else md_path.with_suffix('.html')
-
+def convert_one(md_path, output_path):
+    """把单个 .md 渲染成 .html 并写入。"""
     md_text = md_path.read_text(encoding='utf-8')
     blocks, footnotes = parse_md(md_text)
     # 正文自带 h1 时不再注入文件名标题，避免双标题
@@ -850,8 +881,50 @@ def main():
     content = render_html(blocks, title=title, base_dir=md_path.parent,
                           footnotes=footnotes)
     html_doc = build_page(content, title=md_path.stem)
-
     output_path.write_text(html_doc, encoding='utf-8')
+
+
+def main():
+    positional = parse_cli(sys.argv[1:])
+    if len(positional) < 1:
+        print(USAGE)
+        sys.exit(1)
+
+    src = Path(positional[0])
+
+    # 批量模式：输入是目录 → 转换该目录下的 .md（只扫一层，不递归）。
+    # 时间过滤用文件自身的 mtime，不写任何状态文件，输出默认与源文件同目录。
+    if src.is_dir():
+        if SINCE is not None and len(positional) > 1:
+            print("[md2share] 批量模式下第二个参数是输出目录，--since 仅用于筛选源文件",
+                  file=sys.stderr)
+        out_dir = Path(positional[1]) if len(positional) > 1 else None
+        targets = sorted(p for p in src.glob('*.md') if p.is_file())
+        if SINCE is not None:
+            targets = [p for p in targets
+                       if datetime.fromtimestamp(p.stat().st_mtime) >= SINCE]
+        if not targets:
+            scope = f"（--since 过滤后为空）" if SINCE is not None else ""
+            print(f"没有需要转换的 .md：{src}{scope}")
+            return
+        if out_dir is not None:
+            out_dir.mkdir(parents=True, exist_ok=True)
+        written = []
+        for p in targets:
+            dest = (out_dir / (p.stem + '.html')) if out_dir else p.with_suffix('.html')
+            convert_one(p, dest)
+            written.append(dest)
+        print(f"✅ 批量完成：{len(written)} 个文件")
+        for w in written:
+            print(f"   - {w}")
+        return
+
+    if not src.exists():
+        print(f"找不到: {src}")
+        sys.exit(1)
+
+    output_path = Path(positional[1]) if len(positional) > 1 else src.with_suffix('.html')
+    convert_one(src, output_path)
     print(f"✅ 已生成: {output_path}")
 
 if __name__ == '__main__':

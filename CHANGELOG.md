@@ -2,15 +2,26 @@
 
 Markdown 转手机网页 · MD Out of Chat（`md-out-of-chat`）的版本变更记录。
 
-- 最新版本：**1.5.3**
+- 最新版本：**1.6.0**
 - 发布渠道：[ClawHub](https://clawhub.ai/bonniegeng-max/skills/md-out-of-chat)
-- 版本数：16（含初始版本）
+- 版本数：17（含初始版本）
 
 > 本文件由 ClawHub registry 的逐版本发布记录回溯整理生成（2026-09-29）。此后每次发版请在此追加一条。
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
 ## [Unreleased]
+
+## [1.6.0] - 2026-09-29
+
+批量导出（轻量版）—— 一次把一个目录里「今天 / 本周」改动过的 `.md` 转成手机可读页面。
+
+- `md2share.py`：第一个位置参数可以是**目录**，只扫一层 `*.md`，逐个渲染为同目录同名 `.html`；第二个位置参数为可选输出目录
+- 新增 `--since=today|week|7d|YYYY-MM-DD`：按**文件自身修改时间**筛选，**不写任何状态文件、索引或跟踪目录**
+- 批量模式只新增/覆盖 `.html`，对源 `.md` 严格只读，不移动/改名/删除；不递归子目录
+- 明确"手动触发"边界：skill 不注册定时任务，定时属于宿主平台能力
+- SKILL.md 新增 Batch Export 章节 + 触发条件补「批量导出需用户明确指定文件夹」；README 同步；description 补批量触发词
+- 单文件调用方式与输出行为完全不变（向后兼容）
 
 - 新增本 CHANGELOG.md，回溯整理 0.1.0 → 1.5.3 的历史版本记录（内容取自 ClawHub 逐版本发布记录，未改动代码）
 

@@ -83,8 +83,8 @@ Once installed, talk to your AI agent with an explicit skill mention **and a con
 
 **Trigger contract · 触发契约：**
 
-- This skill only runs when the user names it explicitly AND identifies a concrete `.md` file (a path, an attached file, or a file selected in the conversation).
-- The agent must **not** infer conversion targets from chat history or vague phrases like "转一下" / "convert this".
+- This skill only runs when the user names it explicitly AND identifies a concrete `.md` file (a path, an attached file, a file selected in the conversation) — or, for batch export, a named folder.
+- The agent must **not** infer conversion targets from chat history, pick a folder on its own, or act on vague phrases like "转一下" / "convert this".
 - Only the file(s) the user explicitly identifies are read; nothing else is touched.
 - A public URL is **never** generated unless the user separately requests deployment AND confirms it.
 
@@ -98,6 +98,26 @@ The agent decides the right output based on your explicit request:
 | "发给朋友" · "send to friend" | 生成 HTML 文件后由用户转发 · Generate HTML, then forward the file |
 
 The default is always local-first. A public URL is never generated silently.
+
+### Batch export · 批量导出（v1.6.0）
+
+Away from your computer and want **everything you made today** readable on your phone? Point it at a folder:
+
+> "用 md-out-of-chat 导出今天，文件夹 `~/notes`"
+> "用 md-out-of-chat 导出本周 `~/projects/diary`"
+
+```bash
+python3 md2share.py ~/notes                   # 该目录下所有 .md（只扫一层）
+python3 md2share.py ~/notes --since=today     # 只转今天改过的
+python3 md2share.py ~/notes --since=week      # 本周（周一 00:00 起）
+python3 md2share.py ~/notes --since=7d        # 最近 7 天
+python3 md2share.py ~/notes ~/readable        # 输出集中到另一个目录
+```
+
+- **无状态**：时间过滤直接读文件自身的修改时间，不生成任何索引/清单/跟踪文件。
+- **只扫一层**：只转该目录下的 `.md`，不递归进子目录——指错文件夹也不会滚遍整个硬盘。
+- **手动触发**：本 skill 不注册定时任务；要"每天自动跑"属于宿主平台的自动化能力，由你自己配置。
+- **只读源文件**：仅新增/覆盖 `.html`，绝不移动、改名或删除任何东西。
 
 ---
 

@@ -32,6 +32,25 @@ skill 默认输出本地 HTML；公开链接只在用户明确要求、明确确
 | 明确说"截图/图片" | 解释：HTML 已生成，转 PNG 由宿主自带工具完成，不自动调其他工具 |
 | 明确说"公开链接/URL"、确认部署且有部署工具 | web 链接 |
 
+### 批量导出（v1.6.0）
+
+离开电脑，想一次把**今天做的东西**全变成手机能看的？指定一个文件夹就行：
+
+> "用 md-out-of-chat 导出今天，文件夹 `~/notes`"
+> "用 md-out-of-chat 导出本周 `~/projects/diary`"
+
+```bash
+python3 md2share.py ~/notes                # 该目录下所有 .md（只扫一层）
+python3 md2share.py ~/notes --since=today  # 只转今天改过的
+python3 md2share.py ~/notes --since=week   # 本周（周一 00:00 起）／7d ／2026-09-20
+python3 md2share.py ~/notes ~/readable     # 输出集中到另一个目录
+```
+
+- **无状态**：时间过滤直接读文件自身修改时间，不生成索引/清单/跟踪文件
+- **只扫一层**：不递归子目录；**源 `.md` 严格只读**，只新增/覆盖 `.html`
+- **手动触发**：本 skill 不注册定时任务；"每天自动跑"属于宿主平台自动化，由你自己配
+- **必须你指定文件夹**：不会自己猜目录
+
 ## 安装
 
 这是标准 skill，**把文件夹放到 agent 的 skills 目录**就行：
@@ -53,7 +72,7 @@ agent 会自动识别。
 
 - `SKILL.md` — 英文 spec（agent 读这个）
 - `SKILL.zh.md` — 中文 spec（你读这个）
-- `md2share.py` — 核心脚本：md → 本地 HTML
+- `md2share.py` — 核心脚本：md → 本地 HTML（单文件 或 单层目录批量）
 - `build_and_deploy.sh` — 本地构建辅助（只生成 dist/，不上传）
 - `demo.md` — 测试用的小例子
 - `README.md` — GitHub 首页展示用
