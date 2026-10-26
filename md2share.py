@@ -167,6 +167,96 @@ LANG_ALIASES = {
     'golang': 'go', 'rs': 'rust', 'yml': 'yaml', 'kt': 'kotlin', 'rb': 'ruby',
 }
 
+MERMAID_TYPES = {
+    'flowchart': '流程图', 'graph': '流程图', 'sequencediagram': '时序图',
+    'classdiagram': '类图', 'statediagram': '状态图', 'erdiagram': '实体关系图',
+    'journey': '用户旅程图', 'gantt': '甘特图', 'pie': '饼图',
+    'mindmap': '思维导图', 'timeline': '时间线', 'quadrantchart': '四象限图',
+    'gitgraph': 'Git 分支图', 'c4context': 'C4 上下文图', 'sankey': '桑基图',
+    'xychart': 'XY 图', 'block': '块图', 'requirementdiagram': '需求图',
+    'architecture': '架构图', 'packet': '报文图',
+}
+
+
+def analyze_mermaid(code):
+    """识别 Mermaid 图表类型并抽取图内可见文本，供手机端在没有渲染器时读懂结构。
+
+    返回 (类型中文名, 节点标签列表, 正文行数)。纯正则，不执行任何图表代码。
+    """
+    raw_lines = [ln for ln in code.splitlines() if ln.strip()]
+    lines = [ln.strip() for ln in raw_lines
+             if not ln.strip().startswith('%%')]
+    head = lines[0].lower() if lines else ''
+    mtype = ''
+    for key in sorted(MERMAID_TYPES, key=len, reverse=True):
+        if head.startswith(key):
+            mtype = MERMAID_TYPES[key]
+            break
+
+    labels = []
+    # 方括号 / 花括号 / 圆括号内的节点文本（flowchart、class、state 等）
+    for m in re.finditer(r'[\[\{\(（【]([^\[\]\{\}\(\)（）【】\n|]{1,60})[\]\}\)）】]', code):
+        t = m.group(1).strip().strip('"\'')
+        if t and not re.fullmatch(r'[\d\s,\.\-]+', t) and t not in labels:
+            labels.append(t)
+    # 引号内的边标签或参与方名称
+    for m in re.finditer(r'"([^"\n]{1,40})"', code):
+        t = m.group(1).strip()
+        if t and t not in labels:
+            labels.append(t)
+    # sequenceDiagram 的参与方
+    for m in re.finditer(r'^\s*(?:participant|actor)\s+([^\s]+)', code, re.M):
+        t = m.group(1).strip()
+        if t not in labels:
+            labels.append(t)
+
+    return mtype, labels[:8], len(raw_lines)
+
+
+def render_mermaid_block(code, safe_lang):
+    """Mermaid 图表在没有渲染器时的降级卡片：类型 + 结构摘要 + 可折叠源码 + 复制。
+
+    不引入任何外链脚本、不上传、不执行图表代码，纯静态 HTML。
+    """
+    mtype, labels, nlines = analyze_mermaid(code)
+    code_html = highlight_code(code, 'text')
+    type_label = mtype or 'Mermaid 图表'
+
+    if labels:
+        chips = ''.join(
+            f'<span class="mmd-chip">{html.escape(t)}</span>' for t in labels
+        )
+        label_block = (
+            '<div class="mmd-sec">'
+            '<div class="mmd-sec-title">图里的内容</div>'
+            f'<div class="mmd-chips">{chips}</div>'
+            '</div>'
+        )
+    else:
+        label_block = ''
+
+    more = '…' if len(labels) >= 8 else ''
+    return (
+        f'<div class="code-block mmd-card">'
+        f'<div class="code-header">'
+        f'<span class="code-lang">MERMAID</span>'
+        f'<button class="copy-btn">Copy</button>'
+        f'</div>'
+        f'<div class="mmd-body">'
+        f'<div class="mmd-title">'
+        f'<span class="mmd-badge">{html.escape(type_label)}</span>'
+        f'<span class="mmd-meta">{nlines} 行源码{more}</span>'
+        f'</div>'
+        f'<div class="mmd-hint">手机端不加载图表渲染库，所以这里显示的是结构摘要。'
+        f'要看到实际图形，复制源码后粘贴到任意支持 Mermaid 的编辑器即可。</div>'
+        f'{label_block}'
+        f'<details class="mmd-src"><summary>展开图表源码</summary>'
+        f'<pre><code>{code_html}</code></pre></details>'
+        f'</div>'
+        f'</div>'
+    )
+
+
 def highlight_code(code, lang):
     """单遍 tokenize 高亮：注释 → 字符串 → 关键字 → 数字，互不嵌套错乱"""
     lang_l = LANG_ALIASES.get((lang or '').lower(), (lang or '').lower())
@@ -418,9 +508,12 @@ def render_html(blocks, title="md2view", base_dir=None, footnotes=None):
         elif b['type'] == 'list':
             parts.append(render_list(build_list_tree(b['items']), base_dir))
         elif b['type'] == 'code':
-            code_html = highlight_code(b['content'], b['lang'])
             # code-fence 语言标注来自不可信输入，只保留安全字符集并转义，防 HTML 注入（T09）
             _safe_lang = re.sub(r'[^A-Za-z0-9+#._-]', '', (b['lang'] or '').strip())[:24]
+            if _safe_lang.lower() == 'mermaid':
+                parts.append(render_mermaid_block(b['content'], _safe_lang))
+                continue
+            code_html = highlight_code(b['content'], b['lang'])
             lang_label = html.escape(_safe_lang.upper()) if _safe_lang else 'TEXT'
             parts.append(
                 f'<div class="code-block">'
@@ -570,6 +663,83 @@ code.inline {
   align-items: center;
   padding: 4px 0;
 }
+.mmd-card {
+  border-left-color: #7C5CD6;
+  background: #FAF8FF;
+}
+.mmd-card .code-header { background: #5B44A8; }
+.mmd-body { padding: 14px 16px 16px; }
+.mmd-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.mmd-badge {
+  background: #EDE7FB;
+  color: #4A3590;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid #D9CDF5;
+}
+.mmd-meta {
+  font-size: 12px;
+  color: #8A8798;
+}
+.mmd-hint {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #5F5B6E;
+  background: #F2EEFC;
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-bottom: 10px;
+}
+.mmd-sec { margin-bottom: 10px; }
+.mmd-sec-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6B6480;
+  letter-spacing: 0.3px;
+  margin-bottom: 6px;
+}
+.mmd-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.mmd-chip {
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: #3B3560;
+  background: #FFFFFF;
+  border: 1px solid #E0D9F2;
+  border-radius: 5px;
+  padding: 2px 8px;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.mmd-src summary {
+  font-size: 13px;
+  color: #5B44A8;
+  cursor: pointer;
+  padding: 4px 0;
+  font-weight: 600;
+  list-style: none;
+}
+.mmd-src summary::-webkit-details-marker { display: none; }
+.mmd-src summary::before { content: '▸ '; }
+.mmd-src[open] summary::before { content: '▾ '; }
+.mmd-src pre {
+  margin-top: 6px;
+  border-radius: 6px;
+}
+body.dark .code-block.mmd-card { background: #1A1725; }
+body.dark .code-block.mmd-card .code-header { background: #4A3585; }
+body.dark .mmd-badge { background: #2E2745; color: #C9B8F5; border-color: #443A63; }
+body.dark .mmd-hint { background: #241F35; color: #B9B2CC; }
+body.dark .mmd-sec-title { color: #A79FBF; }
+body.dark .mmd-chip { background: #221E30; color: #D6CDF0; border-color: #3A3350; }
+body.dark .mmd-src summary { color: #B49BF0; }
 .code-lang {
   padding: 0 12px;
   font-size: 12px;
