@@ -1,7 +1,7 @@
 ---
 name: md-out-of-chat
 description: 把 Markdown 文件变成手机能直接打开的单页 HTML——本地运行、不上传、不需要账号和 API Key。支持一次转换一个文件，也支持把一个目录里「今天 / 本周」改动过的 .md 批量转成手机可读页面（无状态文件、不依赖定时任务）。Convert a Markdown file into a mobile-friendly, local HTML page that opens in any phone browser — markdown to html, chat export reader, batch convert a folder of recent notes (today / this week). WeChat/Feishu/Slack/Discord-friendly view. Use when a .md report, note, or chat export needs to be read or shared on a phone, or when you're away from your computer and want everything you made today readable on mobile. Runs 100% locally with no API key, no account, no upload. A public web URL is produced only when the user explicitly asks for it AND confirms, using a trusted deploy tool. This skill does not generate images or screenshots; a Mermaid block in the page is a structural summary card (text source that some renderers can draw), not a truly rendered diagram. Respond in the user's current language.
-version: 1.7.2
+version: 1.7.3
 homepage: https://github.com/bonniegeng-max/md-out-of-chat
 license: MIT
 metadata: {"clawdbot":{"emoji":"📄","requires":{"bins":["python3"],"packages":[],"env":[]}}}
