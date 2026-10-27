@@ -1,7 +1,7 @@
 ---
 name: md-out-of-chat
-description: 把 Markdown 文件变成手机能直接打开的单页 HTML——本地运行、不上传、不需要账号和 API Key。支持一次转换一个文件，也支持把一个目录里「今天 / 本周」改动过的 .md 批量转成手机可读页面（无状态文件、不依赖定时任务）。Convert a Markdown file into a mobile-friendly, local HTML page that opens in any phone browser — markdown to html, chat export reader, batch convert a folder of recent notes (today / this week). WeChat/Feishu/Slack/Discord-friendly view. Use when a .md report, note, or chat export needs to be read or shared on a phone, or when you're away from your computer and want everything you made today readable on mobile. Runs 100% locally with no API key, no account, no upload. A public web URL is produced only when the user explicitly asks for it AND confirms, using a trusted deploy tool. This skill does not generate images or screenshots. Respond in the user's current language.
-version: 1.7.0
+description: 把 Markdown 文件变成手机能直接打开的单页 HTML——本地运行、不上传、不需要账号和 API Key。支持一次转换一个文件，也支持把一个目录里「今天 / 本周」改动过的 .md 批量转成手机可读页面（无状态文件、不依赖定时任务）。Convert a Markdown file into a mobile-friendly, local HTML page that opens in any phone browser — markdown to html, chat export reader, batch convert a folder of recent notes (today / this week). WeChat/Feishu/Slack/Discord-friendly view. Use when a .md report, note, or chat export needs to be read or shared on a phone, or when you're away from your computer and want everything you made today readable on mobile. Runs 100% locally with no API key, no account, no upload. A public web URL is produced only when the user explicitly asks for it AND confirms, using a trusted deploy tool. This skill does not generate images or screenshots; a Mermaid block in the page is a structural summary card (text source that some renderers can draw), not a truly rendered diagram. Respond in the user's current language.
+version: 1.7.2
 homepage: https://github.com/bonniegeng-max/md-out-of-chat
 license: MIT
 metadata: {"clawdbot":{"emoji":"📄","requires":{"bins":["python3"],"packages":[],"env":[]}}}
@@ -38,7 +38,7 @@ Only activate this skill when **both** conditions hold: (1) the user explicitly 
 ## Not the same as
 
 - **A Markdown viewer or note-taking app** — it converts one file you name into a page you can open on a phone. It is not a live editor, and it does not keep a library.
-- **An image generator** — no PNG/JPG output. If a picture is needed, that belongs to the host environment's own tools.
+- **An image generator** — no PNG/JPG output. If a picture is needed, that belongs to the host environment's own tools. A Mermaid block written into a page is a **structural summary card** — plain-text diagram source that *some* renderers can display, and that always stays readable as text in the worst case. It is **not** a really rendered diagram: this skill does not lay out nodes, route arrows, or guarantee the picture looks right. If the diagram itself matters, render it to an image elsewhere and embed that image.
 - **A publish tool** — local HTML is the default. A public URL is produced only after an explicit, separately confirmed request.
 - **baoyu-markdown-to-html** — that skill targets 公众号 article formatting: themes, footnotes, WeChat-compatible rich HTML. This one is not trying to format anything for publication. Its job is narrower and different: "read on your phone what the agent just wrote" — name a file or a folder, get today's/this week's notes as mobile pages, stateless, 100% local, no upload, no account. 排版给别人看是发布，转给自己在手机上读是确认——本 skill 只做后者。
 
