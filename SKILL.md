@@ -40,6 +40,7 @@ Only activate this skill when **both** conditions hold: (1) the user explicitly 
 - **A Markdown viewer or note-taking app** — it converts one file you name into a page you can open on a phone. It is not a live editor, and it does not keep a library.
 - **An image generator** — no PNG/JPG output. If a picture is needed, that belongs to the host environment's own tools.
 - **A publish tool** — local HTML is the default. A public URL is produced only after an explicit, separately confirmed request.
+- **baoyu-markdown-to-html** — that skill targets 公众号 article formatting: themes, footnotes, WeChat-compatible rich HTML. This one is not trying to format anything for publication. Its job is narrower and different: "read on your phone what the agent just wrote" — name a file or a folder, get today's/this week's notes as mobile pages, stateless, 100% local, no upload, no account. 排版给别人看是发布，转给自己在手机上读是确认——本 skill 只做后者。
 
 ## Design Spec (Blue / White / Gray — Minimal & Clean)
 
